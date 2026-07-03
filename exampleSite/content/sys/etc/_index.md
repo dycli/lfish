@@ -1,0 +1,4 @@
+---
+title: "etc"
+url: "/etc/"
+---

@@ -1,0 +1,11 @@
+{{- /*
+  target.html — the page a "symlink" entry points to:
+    - `link`   : an internal page (site.GetPage); external URLs find nothing.
+    - `latest` : the newest non-nolist page under that section.
+  Returns the entry itself when there is no symlink (or the link is external).
+  Used for the entry's shown date/size and its preview.
+*/ -}}
+{{- $t := . -}}
+{{- with .Params.link }}{{ with site.GetPage . }}{{ $t = . }}{{ end }}{{ end -}}
+{{- with .Params.latest }}{{ with site.GetPage . }}{{ range first 1 (where .RegularPagesRecursive "Params.nolist" "!=" true).ByDate.Reverse }}{{ $t = . }}{{ end }}{{ end }}{{ end -}}
+{{- return $t -}}

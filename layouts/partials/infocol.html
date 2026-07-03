@@ -1,0 +1,13 @@
+{{- /*
+  infocol.html — the lf `info` column for an entry: a size span and a time
+  span. Which show is controlled by a root class (lf--info-size / -time /
+  -both / -none), toggled by `zn/zs/zt/za`. The date uses the desktop
+  `Jan _2 2006` form ("Jun  1 2026") on every screen. Follows `link`.
+
+  The long form's `_2` day padding is converted to a non-breaking space so the
+  HTML minifier can't collapse it — that keeps single-digit days column-aligned.
+*/ -}}
+{{- $e := . -}}
+{{- $d := partial "edate.html" $e -}}
+{{- $t := "" }}{{ if not $d.IsZero }}{{ $t = replace ($d.Format (site.Params.info_format | default "Jan _2 2006")) " " " " }}{{ end -}}
+<span class="lf-info"><span class="lf-isize">{{ partial "size.html" $e }}</span><span class="lf-itime">{{ $t }}</span></span>

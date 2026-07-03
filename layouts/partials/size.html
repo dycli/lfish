@@ -1,0 +1,5 @@
+{{- /* size.html — human-readable size (B/K/M) for display. */ -}}
+{{- $b := partialCached "size-bytes.html" . .RelPermalink -}}
+{{- $s := printf "%dB" $b -}}
+{{- if ge $b 1048576 }}{{ $s = printf "%.1fM" (div $b 1048576.0) }}{{ else if ge $b 1024 }}{{ $s = printf "%.1fK" (div $b 1024.0) }}{{ end -}}
+{{- return $s -}}

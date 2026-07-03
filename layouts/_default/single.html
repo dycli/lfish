@@ -1,0 +1,2 @@
+{{/* a generated photo page (has imgname) → photo.html; everything else → reader */}}
+{{ define "main" }}{{ if .Params.imgname }}{{ partial "photo.html" . }}{{ else }}{{ partial "reader.html" . }}{{ end }}{{ end }}

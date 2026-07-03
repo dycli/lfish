@@ -1,0 +1,4 @@
+{{- /* render-link.html — external markdown links open in a new tab. */ -}}
+{{- $u := .Destination -}}
+{{- $ext := or (strings.HasPrefix $u "http://") (strings.HasPrefix $u "https://") -}}
+<a href="{{ $u | safeURL }}"{{ with .Title }} title="{{ . }}"{{ end }}{{ if $ext }} target="_blank" rel="noopener noreferrer"{{ end }}>{{ .Text | safeHTML }}</a>

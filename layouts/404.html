@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="{{ with site.Language.Lang }}{{ . }}{{ else }}en{{ end }}" data-theme="dark">
+<head>{{ partial "head.html" . }}</head>
+<body class="lf-body">
+  <div class="lf">
+    <header class="lf-bar lf-topbar">
+      <a class="lf-prompt" href="{{ "/" | relURL }}" title="home">{{ site.Params.user | default "user" }}@{{ site.Params.host | default site.Title }}</a>
+    </header>
+    <div class="lf-cols">
+      <main class="lf-pane lf-current" style="flex:1">
+        <div style="padding:1em 1.4ch">
+          <pre class="lf-404">
+ 404 &mdash; no such file or directory
+
+   the path you followed does not exist.
+
+   press <b>h</b> or click <a href="{{ "/" | relURL }}">here</a> to go home.
+          </pre>
+        </div>
+      </main>
+    </div>
+    <footer class="lf-bar lf-statusbar">
+      <span class="lf-status-left">errno 2</span>
+    </footer>
+  </div>
+  <script>document.addEventListener("keydown",function(e){if(e.key==="h"&&!e.metaKey&&!e.ctrlKey&&!e.altKey){e.preventDefault();location.href="{{ "/" | relURL }}";}});</script>
+</body>
+</html>

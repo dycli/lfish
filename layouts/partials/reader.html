@@ -1,0 +1,40 @@
+{{- /*
+  reader.html — full-screen "open in editor" view for a single file.
+
+  Reached by pressing l / clicking a file in the miller view. Renders the
+  markdown nicely, scrolls with j/k, and closes with :q, q, Esc, h, or the
+  ✕ button (returning to the listing you came from).
+*/ -}}
+{{- $page := . -}}
+{{- $user := site.Params.user | default "user" -}}
+{{- $host := site.Params.host | default site.Title -}}
+<div class="lf lf-reader" id="lf" data-reader="1" data-here="{{ $page.RelPermalink }}" data-up="{{ with $page.Parent }}{{ .RelPermalink }}{{ else }}{{ "/" | relURL }}{{ end }}">
+
+  <header class="lf-bar lf-topbar">
+    <a class="lf-prompt" href="{{ "/" | relURL }}" title="home">{{ $user }}@{{ $host }}</a><span class="lf-psep">:</span>
+    {{- /* a file in the Unix tree shows its absolute path (/etc/…), like the manager */ -}}
+    {{- $abs := $page.Params.unix -}}
+    {{- $rootHref := "/" | relURL }}{{ if $abs }}{{ with site.GetPage (index (site.Params.lf | default dict) "root" | default "/fs") }}{{ $rootHref = .RelPermalink }}{{ end }}{{ end -}}
+    {{- $chain := partial "crumbs.html" (dict "dir" $page.Parent "abs" $abs) -}}
+    <span class="lf-path">
+      <a href="{{ $rootHref }}" class="lf-crumb lf-d">{{ cond $abs "/" "~" }}</a>{{ range $idx, $c := $chain }}{{ if or (gt $idx 0) (not $abs) }}<span class="lf-sep">/</span>{{ end }}<a href="{{ $c.href }}" class="lf-crumb lf-d">{{ $c.title }}</a>{{ end }}<span class="lf-sep">{{ cond (and $abs (eq (len $chain) 0)) "" "/" }}</span><span class="lf-crumb lf-here">{{ partial "name.html" $page }}</span>
+    </span>
+    {{ partial "controls.html" (dict) }}
+  </header>
+
+  <main class="lf-reader-body" id="lf-reader-body" tabindex="0">
+    <article class="lf-prose lf-reader-prose">
+      {{ $page.Content }}
+    </article>
+  </main>
+
+  {{- /* Neovim-default-style statusline: filename left, line,col + %P right */ -}}
+  <footer class="lf-bar lf-nvstatus">
+    <span class="lf-nv-file" id="lf-nv-file">{{ partial "name.html" $page }}</span>
+    <span class="lf-cmd" id="lf-cmd" hidden></span>
+    <span class="lf-nv-right">
+      <span class="lf-nv-ruler" id="lf-nv-ruler">1,1</span>
+      <span class="lf-nv-pct" id="lf-nv-pct">Top</span>
+    </span>
+  </footer>
+</div>

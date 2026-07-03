@@ -1,0 +1,53 @@
+{{- /*
+  preview.html — render the right-hand preview for a single entry, lf-style:
+  just the bare contents, no headers or info column.
+
+    directory → a plain list of its files
+    file      → its raw markdown source (rendered "visually" only in the
+                full reader; here it's previewed as plain text, lf-style)
+
+  Input dict:
+    entry   : the Page to preview
+    current : bool, true when this entry is the selected one
+*/ -}}
+{{- $e := .entry -}}
+{{- $current := .current -}}
+{{- /* a symlink (link / latest): preview its target. An external link has no
+       page, so show "→ url" instead. */ -}}
+{{- $link := $e.Params.link -}}
+{{- $ext := false -}}{{ with $link }}{{ if not (site.GetPage .) }}{{ $ext = true }}{{ end }}{{ end -}}
+{{- if not $ext }}{{ $e = partial "target.html" $e }}{{ end -}}
+<article class="lf-prev" data-href="{{ $e.RelPermalink }}"{{ if not $current }} hidden{{ end }}>
+  {{- if $ext -}}
+    <div class="lf-srcprev">&#8594; {{ $link }}</div>
+  {{- else if and $e.IsPage $e.Params.imgname -}}
+    {{- /* a photo previews as its picture — a display-sized copy, so browsing
+           never pulls multi-MB originals (the photo page itself still serves
+           the untouched file) */ -}}
+    {{- $pimg := false }}{{ with $e.Parent }}{{ $pimg = .Resources.GetMatch (printf "%s.*" $e.Params.imgname) }}{{ end -}}
+    {{- with $pimg -}}
+      {{- if and (ne .MediaType.SubType "svg") (gt .Width 1200) }}{{ $pimg = .Resize "1200x webp q80" }}{{ end -}}
+      <img class="lf-imgprev" src="{{ $pimg.RelPermalink }}" alt="" loading="lazy">
+    {{- end -}}
+  {{- else if not $e.IsPage -}}
+    {{- $kids := partialCached "entries.html" $e $e.RelPermalink -}}
+    {{- $vkids := where $kids "Params.hidden" "!=" true -}}
+    {{- $first := false -}}{{ with $vkids }}{{ $first = index . 0 }}{{ end -}}
+    {{- if not $kids -}}<div class="lf-empty">{{ if $e.Params.denied }}permission denied{{ else }}empty{{ end }}</div>{{- else -}}
+    <ul class="lf-dirprev-list">
+      {{- range $kids -}}
+        {{- $isdir := eq .Kind "section" -}}
+        {{- $willsel := and $first (eq .Permalink $first.Permalink) -}}
+        {{- $h := partialCached "linkhref.html" . .RelPermalink -}}
+        {{- $ked := partialCached "edate.html" . .RelPermalink -}}
+        <li class="{{ if $isdir }}lf-d{{ else }}{{ partialCached "ftype.html" . .RelPermalink }}{{ end }}{{ if .Params.hidden }} lf-hidden{{ end }}{{ if $willsel }} lf-will-select{{ end }}" data-name="{{ partial "name.html" . }}" data-dir="{{ if $isdir }}1{{ else }}0{{ end }}" data-size="{{ partialCached "size-bytes.html" . .RelPermalink }}" data-time="{{ if not $ked.IsZero }}{{ $ked.Unix }}{{ else }}0{{ end }}"><a href="{{ $h }}"{{ if hasPrefix $h "http" }} target="_blank" rel="noopener noreferrer"{{ end }}><span class="lf-name">{{ partial "name.html" . }}</span>{{ partialCached "infocol.html" . .RelPermalink }}</a></li>
+      {{- end -}}
+    </ul>
+    {{- end -}}
+  {{- else if $e.Params.previewrender -}}
+    {{- /* render the output, not the source (e.g. the fastfetch / logo pages) */ -}}
+    {{ $e.Content }}
+  {{- else -}}
+    <pre class="lf-srcprev">{{ $e.RawContent }}</pre>
+  {{- end -}}
+</article>

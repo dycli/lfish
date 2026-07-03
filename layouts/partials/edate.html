@@ -1,0 +1,9 @@
+{{- /*
+  edate.html — the effective modification date for an entry, as a time.Time.
+  Follows a `link` to its target, then uses .Date or, if unset, .Lastmod (so a
+  folder shows the most recent date of its contents). Callers format it
+  (mtime / infocol) or test .IsZero.
+*/ -}}
+{{- $t := partialCached "target.html" . .RelPermalink -}}
+{{- $d := $t.Date }}{{ if $d.IsZero }}{{ $d = $t.Lastmod }}{{ end -}}
+{{- return $d -}}

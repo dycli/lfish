@@ -1,0 +1,32 @@
+{{- /*
+  entries.html — returns the "directory listing" for a given page.
+
+  Input: a Page that acts as a directory (home or a section).
+  Output: a slice of Pages in lf's default order (dirfirst + name sort, where
+          a leading "." sorts first):
+
+            1. dot directories   (.config/)
+            2. directories       (posts/)
+            3. dot files         (.plan)
+            4. files             (about.md)
+
+  Within each group, entries keep their natural title order. We partition
+  explicitly rather than rely on .ByTitle, because Hugo's locale-aware
+  collation can ignore a leading "." and scatter the dotted entries.
+
+  Hidden pages (front matter `hidden: true`) ARE included — the templates
+  render them with a .lf-hidden class so `zh` can toggle them, lf-style.
+  Folders whose on-disk name starts with "." are ignored by Hugo, so name a
+  dot-folder `config/` on disk and set its front matter `title: ".config"`.
+
+  Usage: {{ $entries := partial "entries.html" $dir }}
+*/ -}}
+{{- $dir := . -}}
+{{- $secs := where $dir.Sections "Params.nolist" "!=" true -}}
+{{- $pages := where $dir.RegularPages "Params.nolist" "!=" true -}}
+{{- $entries := slice -}}
+{{- range $secs.ByTitle -}}{{ if hasPrefix .Title "." }}{{ $entries = $entries | append . }}{{ end }}{{- end -}}
+{{- range $secs.ByTitle -}}{{ if not (hasPrefix .Title ".") }}{{ $entries = $entries | append . }}{{ end }}{{- end -}}
+{{- range $pages.ByTitle -}}{{ if hasPrefix .Title "." }}{{ $entries = $entries | append . }}{{ end }}{{- end -}}
+{{- range $pages.ByTitle -}}{{ if not (hasPrefix .Title ".") }}{{ $entries = $entries | append . }}{{ end }}{{- end -}}
+{{- return $entries -}}

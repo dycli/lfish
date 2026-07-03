@@ -1,0 +1,19 @@
+{{- /*
+  ftype.html — the CSS class for a file entry, following standard `ls`
+  (GNU dircolors) extension categories, coloured from the Ghostty palette:
+
+    archives        → lf-arc (red)
+    images / video  → lf-img (magenta)
+    audio           → lf-aud (cyan)
+    everything else → lf-f   (default text colour, e.g. .md)
+
+  Directories are handled by the caller (lf-d). Executables aren't colourable
+  here — `ls` keys those off the +x bit, not the extension.
+*/ -}}
+{{- $ext := lower (strings.TrimPrefix "." (path.Ext (partial "name.html" .))) -}}
+{{- $arc := slice "tar" "tgz" "taz" "gz" "bz2" "bz" "tbz" "xz" "txz" "zst" "tzst" "lz" "lzma" "7z" "zip" "rar" "z" "deb" "rpm" "jar" "war" "cab" "cpio" -}}
+{{- $img := slice "jpg" "jpeg" "gif" "bmp" "pbm" "ppm" "tga" "xbm" "xpm" "tif" "tiff" "png" "svg" "svgz" "ico" "webp" "pcx" "mov" "mpg" "mpeg" "m2v" "mkv" "webm" "ogm" "mp4" "m4v" "vob" "wmv" "avi" "flv" "ogv" -}}
+{{- $aud := slice "aac" "au" "flac" "m4a" "mid" "midi" "mka" "mp3" "mpc" "ogg" "ra" "wav" "oga" "opus" "spx" "xspf" -}}
+{{- $c := "lf-f" -}}
+{{- if or .Params.link .Params.latest }}{{ $c = "lf-ln" }}{{ else if in $arc $ext }}{{ $c = "lf-arc" }}{{ else if in $img $ext }}{{ $c = "lf-img" }}{{ else if in $aud $ext }}{{ $c = "lf-aud" }}{{ end -}}
+{{- return $c -}}

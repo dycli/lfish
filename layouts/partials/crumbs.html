@@ -1,0 +1,20 @@
+{{- /*
+  crumbs.html — the breadcrumb path for a directory, as a slice of
+  {href, title} dicts from the root (exclusive) down to the directory itself.
+  The caller renders the root crumb (~ or /) and the trailing entry.
+
+  Input: dict { "dir": <page>, "abs": <bool> }
+    abs=true  → the absolute Unix world: ancestors that are `unix` and not the
+                fs root, then the dir itself (unless it is the fs root).
+    abs=false → the home subtree: ancestors except home, then the dir itself
+                (unless it is home, which is the ~ root the caller renders).
+*/ -}}
+{{- $dir := .dir -}}{{- $abs := .abs -}}
+{{- $chain := slice -}}
+{{- range $dir.Ancestors.Reverse -}}
+  {{- $keep := cond $abs (and .Params.unix (not .Params.fsroot)) (not .IsHome) -}}
+  {{- if $keep }}{{ $chain = $chain | append (dict "href" .RelPermalink "title" .Title) }}{{ end -}}
+{{- end -}}
+{{- $isRoot := cond $abs (eq $dir.Params.fsroot true) $dir.IsHome -}}
+{{- if not $isRoot }}{{ $chain = $chain | append (dict "href" $dir.RelPermalink "title" $dir.Title) }}{{ end -}}
+{{- return $chain -}}

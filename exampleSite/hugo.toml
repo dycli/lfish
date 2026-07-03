@@ -1,0 +1,42 @@
+baseURL = "https://example.org/"
+title = "alice"
+theme = "lfish"
+
+# lfish theme demo site. Run from this directory with:
+#   hugo server --themesDir ../..
+
+enableEmoji = true
+summaryLength = 40
+
+[params]
+  # Shown in the prompt (user@host) and as the ls -l owner/group.
+  user = "alice"
+  host = "example.org"
+  # Top-bar icon links. Leave blank (or omit) to hide either.
+  email  = "alice@example.org"
+  github = "https://github.com/alice"
+  # Info-column date format (Go reference layout).
+  info_format = "Jan _2 2006"
+  # Meta description fallback (used when a page has no description/summary).
+  description = "An example site for the lf theme."
+
+  # Where the absolute-filesystem tree lives in the content tree.
+  # This demo deliberately uses a non-default location (content/sys/)
+  # to show the theme doesn't care about the spelling. If you name
+  # yours /fs (the default), you can omit both lines.
+  [params.lf]
+    root = "/sys"
+    home = "/sys/home"
+    # rootfs = false   # uncomment to drop the Unix layer: ~ becomes the top
+
+[markup]
+  [markup.highlight]
+    # class-based tokens; the theme's lf.css carries the palette (both themes)
+    noClasses = false
+    lineNos = false
+  [markup.goldmark.renderer]
+    unsafe = true
+
+# Keep Hugo's pagination out of the way; the miller view shows everything.
+[pagination]
+  pagerSize = 200

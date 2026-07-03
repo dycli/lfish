@@ -1,0 +1,25 @@
+{{- /* fastfetch easter egg — ASCII logo (read from .config/fastfetch/logo.txt) plus
+       an honest little system-info block. Used by ~/fastfetch.txt. */ -}}
+{{- $id := printf "%s@%s" (site.Params.user | default "user") (site.Params.host | default site.Title) -}}
+{{- $logoFile := "content/config/fastfetch/logo.txt" -}}
+{{- $logo := "" }}{{ if fileExists $logoFile }}{{ $logo = os.ReadFile $logoFile }}{{ end -}}
+<div class="lf-fetch">
+  {{ with $logo }}<pre class="lf-fetch-art" aria-hidden="true">{{ trim . "\n" }}</pre>{{ end }}
+  <div class="lf-fetch-info">
+    <div class="lf-fetch-id">{{ $id }}</div>
+    <div class="lf-fetch-sep">{{ strings.Repeat (len $id) "-" }}</div>
+    <div><span class="lf-fetch-k">OS</span>: {{ site.Params.host }}</div>
+    <div><span class="lf-fetch-k">Host</span>: Your Computer</div>
+    <div><span class="lf-fetch-k">Kernel</span>: Hugo {{ hugo.Version }}{{ if hugo.IsExtended }}+extended{{ end }}</div>
+    {{- $launch := time.AsTime (site.Params.launched | default "2026-06-01") -}}
+    <div><span class="lf-fetch-k">Uptime</span>: <span class="lf-uptime" data-since="{{ $launch.Unix }}">since {{ $launch.Format "Jan 2, 2006" }}</span></div>
+    <div><span class="lf-fetch-k">Pages</span>: {{ len site.RegularPages }}</div>
+    <div><span class="lf-fetch-k">Memory</span>: 0 cookies &middot; 0 trackers</div>
+    {{- /* terminal palette, fastfetch-style: normal row (ANSI 0-7) then bright row (8-15).
+           bright green (--dir) and bright cyan (--link) are the site's signature colors. */ -}}
+    <div class="lf-fetch-blocks" aria-hidden="true">
+      <div><span style="background:var(--bg2)"></span><span style="background:var(--red)"></span><span style="background:var(--green)"></span><span style="background:var(--yellow)"></span><span style="background:var(--blue)"></span><span style="background:var(--purple)"></span><span style="background:var(--aqua)"></span><span style="background:var(--fg-dim)"></span></div>
+      <div><span style="background:var(--gray)"></span><span style="background:var(--red)"></span><span style="background:var(--dir)"></span><span style="background:var(--yellow)"></span><span style="background:var(--blue)"></span><span style="background:var(--purple)"></span><span style="background:var(--link)"></span><span style="background:var(--fg)"></span></div>
+    </div>
+  </div>
+</div>

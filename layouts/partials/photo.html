@@ -1,0 +1,104 @@
+{{- /*
+  photo.html — one picture's own page (its own URL), inside an album.
+
+  A photo is a plain page (`sunset.md`) with its image sitting beside it in the
+  album folder (`sunset.png`, a resource of the parent section), so each picture
+  is just "a file in a folder" with a real URL. The image fills the view; the
+  picture's info (caption, location, camera, date, dimensions) lives in the
+  status bar. j/k step to the prev/next picture's page (looping at the ends); o opens the
+  album grid (hjkl/arrows pick, Enter or click opens), i the full info; h/Esc return to the
+  album. Driven by the `data-photopage` branch in lf.js.
+*/ -}}
+{{- $page := . -}}
+{{- $user := site.Params.user | default "user" -}}
+{{- $host := site.Params.host | default site.Title -}}
+{{- $img := false -}}
+{{- with $page.Parent }}{{ $img = .Resources.GetMatch (printf "%s.*" $page.Params.imgname) }}{{ end -}}
+
+{{- /* prev / next within the album, in the same order as the listing (ByTitle),
+       wrapping at the ends so j/k loop through the album */ -}}
+{{- $sibs := $page.Parent.RegularPages.ByTitle -}}
+{{- $n := len $sibs -}}{{ $idx := 0 -}}
+{{- range $j, $s := $sibs }}{{ if eq $s.RelPermalink $page.RelPermalink }}{{ $idx = $j }}{{ end }}{{ end -}}
+{{- $prev := "" }}{{ $next := "" -}}
+{{- if gt $n 1 -}}
+  {{- $prev = (index $sibs (mod (add $idx (sub $n 1)) $n)).RelPermalink -}}
+  {{- $next = (index $sibs (mod (add $idx 1) $n)).RelPermalink -}}
+{{- end -}}
+
+{{- /* the status-bar info line, left side: title · size · dimensions (tap it for
+       the full details). Everything else moved into the info box. */ -}}
+{{- $parts := slice (partial "name.html" $page) (partial "size.html" $page) -}}
+{{- with $img }}{{ $parts = $parts | append (printf "%d×%d" .Width .Height) }}{{ end -}}
+
+<div class="lf lf-reader lf-photo" id="lf" data-photopage="1"
+     data-here="{{ $page.RelPermalink }}" data-up="{{ $page.Parent.RelPermalink }}"
+     data-prev="{{ $prev }}" data-next="{{ $next }}">
+
+  <header class="lf-bar lf-topbar">
+    <a class="lf-prompt" href="{{ "/" | relURL }}" title="home">{{ $user }}@{{ $host }}</a><span class="lf-psep">:</span>
+    {{- /* a photo in the Unix tree shows its absolute path, like the manager */ -}}
+    {{- $abs := $page.Params.unix -}}
+    {{- $rootHref := "/" | relURL }}{{ if $abs }}{{ with site.GetPage (index (site.Params.lf | default dict) "root" | default "/fs") }}{{ $rootHref = .RelPermalink }}{{ end }}{{ end -}}
+    {{- $chain := partial "crumbs.html" (dict "dir" $page.Parent "abs" $abs) -}}
+    <span class="lf-path">
+      <a href="{{ $rootHref }}" class="lf-crumb lf-d">{{ cond $abs "/" "~" }}</a>{{ range $idx, $c := $chain }}{{ if or (gt $idx 0) (not $abs) }}<span class="lf-sep">/</span>{{ end }}<a href="{{ $c.href }}" class="lf-crumb lf-d">{{ $c.title }}</a>{{ end }}<span class="lf-sep">{{ cond (and $abs (eq (len $chain) 0)) "" "/" }}</span><span class="lf-crumb lf-here">{{ partial "name.html" $page }}</span>
+    </span>
+    {{ partial "controls.html" (dict) }}
+  </header>
+
+  <main class="lf-photo-body">
+    {{- with $img }}<img class="lf-photo-img" src="{{ .RelPermalink }}" alt="{{ $page.Params.caption | default $page.Title }}">{{ end -}}
+  </main>
+
+  {{- /* mobile only (no keyboard): ← jumps back to the album, ^/v step through it */ -}}
+  <nav class="lf-photo-nav" aria-label="album">
+    <button class="lf-photo-arrow lf-photo-back" id="lf-photo-back" type="button" aria-label="back to album"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
+    {{- if gt $n 1 -}}
+    <button class="lf-photo-arrow" id="lf-photo-prev" type="button" aria-label="previous photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg></button>
+    <button class="lf-photo-arrow" id="lf-photo-next" type="button" aria-label="next photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+    {{- end -}}
+  </nav>
+
+  {{- /* two buttons: left = title·size·dimensions (scrolls if long, tap → full
+         info box); right = album name + n/n (fixed, tap → grid of all photos) */ -}}
+  <footer class="lf-bar lf-statusbar lf-photo-status" id="lf-photo-status">
+    <button type="button" class="lf-status-left lf-photo-info" id="lf-photo-info" title="full info">{{ delimit $parts "   " }} [i]</button>
+    <button type="button" class="lf-photo-album" id="lf-photo-album" title="all photos in this album (o)">[o] {{ $page.Parent.Title }} <span class="lf-pos">{{ add $idx 1 }}/{{ $n }}</span></button>
+  </footer>
+
+  {{- /* tap the info button (or `i`) for every detail, even when it's truncated */ -}}
+  <div class="lf-infobox" id="lf-infobox" hidden>
+    <dl class="lf-infobox-dl">
+      <dt>file</dt><dd>{{ partial "name.html" $page }}</dd>
+      <dt>size</dt><dd>{{ partial "size.html" $page }}</dd>
+      {{- with $img }}<dt>dimensions</dt><dd>{{ .Width }}&times;{{ .Height }}</dd>{{ end -}}
+      {{- if not $page.Date.IsZero }}<dt>date</dt><dd>{{ $page.Date.Format "Jan 2, 2006" }}</dd>{{ end -}}
+      {{- with $page.Params.caption }}<dt>caption</dt><dd>{{ . }}</dd>{{ end -}}
+      {{- with $page.Params.location }}<dt>location</dt><dd>{{ . }}</dd>{{ end -}}
+      {{- with $page.Params.camera }}<dt>camera</dt><dd>{{ . }}</dd>{{ end -}}
+      {{- with $page.Params.lens }}<dt>lens</dt><dd>{{ . }}</dd>{{ end -}}
+    </dl>
+  </div>
+
+  {{- /* tap the album button for a responsive grid of every photo in the album;
+         a thumbnail links to that photo's page. Scrolls if it overflows. */ -}}
+  <div class="lf-albumbox" id="lf-albumbox" hidden>
+    <div class="lf-albumbox-panel">
+      <div class="lf-albumbox-head">
+        <span class="lf-albumbox-title">{{ $page.Parent.Title }}</span>
+        <button type="button" class="lf-albumbox-close" id="lf-albumbox-close" aria-label="close">&times;</button>
+      </div>
+      <div class="lf-albumscroll">
+        <div class="lf-albumgrid">
+          {{- range $s := $sibs -}}
+            {{- $simg := $page.Parent.Resources.GetMatch (printf "%s.*" $s.Params.imgname) -}}
+            <a class="lf-albumthumb{{ if eq $s.RelPermalink $page.RelPermalink }} lf-albumthumb--cur{{ end }}" href="{{ $s.RelPermalink }}" title="{{ $s.Params.caption | default $s.Title }}"{{ if eq $s.RelPermalink $page.RelPermalink }} aria-current="true"{{ end }}>
+              {{- with $simg }}{{ $t := .Resize "400x webp q72" }}<img src="{{ $t.RelPermalink }}" width="{{ $t.Width }}" height="{{ $t.Height }}" alt="{{ $s.Params.caption | default $s.Title }}" loading="lazy">{{ end -}}
+            </a>
+          {{- end -}}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

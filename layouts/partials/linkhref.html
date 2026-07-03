@@ -1,0 +1,9 @@
+{{- /*
+  linkhref.html — the URL a symlink entry navigates to: an external/internal
+  `link` string verbatim, the resolved `latest` target's URL, else its own URL.
+  (The `latest` resolution itself lives in target.html.)
+*/ -}}
+{{- $h := .RelPermalink -}}
+{{- with .Params.link }}{{ $h = . }}{{ end -}}
+{{- with .Params.latest }}{{ $h = (partialCached "target.html" $ $.RelPermalink).RelPermalink }}{{ end -}}
+{{- return $h -}}

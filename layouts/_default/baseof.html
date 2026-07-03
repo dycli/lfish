@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="{{ with site.Language.Lang }}{{ . }}{{ else }}en{{ end }}" data-theme="dark">
+<head>
+  {{ partial "head.html" . }}
+</head>
+<body class="lf-body">
+  {{ block "main" . }}{{ partial "miller.html" . }}{{ end }}
+  {{- $js := resources.Get "js/lf.js" | resources.Minify | resources.Fingerprint -}}
+  <script src="{{ $js.RelPermalink }}" integrity="{{ $js.Data.Integrity }}" defer></script>
+</body>
+</html>

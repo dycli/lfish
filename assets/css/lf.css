@@ -1,0 +1,643 @@
+/* ────────────────────────────────────────────────────────────────────────
+   lfish — a Hugo theme that looks and feels like the lf terminal file manager.
+
+   Palette: Tomorrow Night (Ghostty's default) for dark, Tomorrow for light.
+   The cursor uses reverse-video on the whole row, exactly like lf.
+
+   Layout: a full-viewport flex column — top bar, three miller columns
+   (parent | current | preview), bottom status bar. The reader (single pages)
+   reuses the same frame but swaps the columns for a scrolling document.
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* ── palette ───────────────────────────────────────────────────────────── */
+:root {
+  --bg0:   #0d1422;   /* base — panes & body (deep blue-black) */
+  --bg1:   #1a2236;   /* hover, code blocks */
+  --bg2:   #28324a;   /* borders */
+  --bg3:   #3a4664;   /* reader statusline bar, modal border */
+  --fg:    #ffffff;   /* full white — body text, file entries, cursor bar */
+  --fg-dim:#a8abab;
+  --gray:  #6f7479;
+  --blue:  #81a2be;
+  --aqua:  #8abeb7;
+  --green: #b5bd68;
+  --yellow:#f0c674;
+  --orange:#de935f;
+  --red:   #cc6666;
+  --purple:#b294bb;
+
+  --dir:   #48d97c;       /* directories — old-school terminal green */
+  --file:  var(--fg);
+  --link:  #59d3d8;       /* symlinks — cyan (between muted and punchy) */
+  --accent:var(--aqua);
+
+  /* the reader is a "different program" — a touch darker than the manager */
+  --reader-bg: #090e1a;
+
+  --mono: ui-monospace, "JetBrains Mono", "SF Mono", "Cascadia Code",
+          "Fira Code", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  --row: 1.6em;
+}
+
+/* light palette — "Tomorrow", the companion to Tomorrow Night. Only the base
+   colours are redefined; --dir/--file/--accent resolve through var() at
+   use-time, so they follow automatically. */
+:root[data-theme="light"] {
+  --bg0:   #ece5d7;   /* warm, calm off-white — easy on the eyes, not stark */
+  --bg1:   #e3dccb;
+  --bg2:   #d5cbb7;
+  --bg3:   #bfb5a0;
+  --fg:    #1a1a1a;   /* near-black text (a touch lifted) */
+  --fg-dim:#6f695e;
+  --gray:  #978f7e;
+  --blue:  #3b6aa0;
+  --aqua:  #3a8a8f;
+  --green: #5b7110;
+  --yellow:#9a7400;
+  --orange:#c05a1e;
+  --red:   #c0392b;
+  --purple:#825aa3;
+  --dir:   #1c7c3a;       /* darker terminal green for the light background */
+  --link:  #15879a;       /* cyan for the light background */
+  --reader-bg: #e6dfcf;
+}
+
+/* ── base ──────────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; overflow: hidden; }  /* never a document scrollbar */
+/* no default tap-highlight box on touch; intentional :active feedback stays */
+html { -webkit-tap-highlight-color: transparent; }
+
+.lf-body {
+  background: var(--bg0);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 15px;
+  line-height: var(--row);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* the whole app fills the viewport; panes scroll internally, not the page */
+.lf {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  /* installed (viewport-fit=cover): keep the bars clear of the notch / home bar */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+/* In an installed (standalone) app, iOS miscomputes vh/dvh after a navigation and
+   the bottom status bar drops off-screen until relaunch. The % chain (html/body
+   are height:100%) is stable there, so use it when standalone. */
+@media (display-mode: standalone) { html, body, .lf { height: 100%; } }
+
+/* ── top & bottom bars ─────────────────────────────────────────────────── */
+.lf-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1ch;
+  padding: 0.2em 1ch;
+  background: var(--bg0);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.lf-statusbar {
+  justify-content: space-between;
+  color: var(--fg);
+  font-size: 0.9em;
+}
+/* top bar is a shell prompt: user@host:path — keep it tight, no gaps */
+.lf-topbar { gap: 0; }
+.lf-psep { color: var(--fg-dim); }
+/* status left: the ls -l stat of the selected entry; white-space:pre keeps the
+   mtime day padding. It shrinks with an ellipsis so the position stays put. */
+.lf-status-left  { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
+.lf-status-right { flex: 0 0 auto; display: flex; align-items: center; gap: 2ch; }
+.lf-pos { color: var(--fg); }
+.lf-cmd { color: var(--yellow); }
+
+/* top bar: prompt, breadcrumb path, controls */
+.lf-prompt { color: var(--green); font-weight: 700; flex: 0 0 auto; text-decoration: none; cursor: pointer; }
+.lf-prompt:hover { filter: brightness(1.15); }
+.lf-path   { overflow: hidden; text-overflow: ellipsis; }
+.lf-crumb  { text-decoration: none; font-weight: 500; }   /* dir crumbs go 700 via .lf-d */
+.lf-crumb.lf-d { color: var(--dir); }
+.lf-crumb:hover { text-decoration: underline; }
+.lf-here { color: var(--fg) !important; }  /* current path segment: white */
+.lf-sep  { color: var(--gray); margin: 0 0.1ch; }
+
+/* mobile-only status-bar icons (← back, ⌂ home, gear menu); hidden on desktop —
+   the desktop ? lives in the top-bar controls (.lf-help-top) instead */
+.lf-updir, .lf-gohome, .lf-help { display: none; align-items: center; color: var(--fg-dim); text-decoration: none; cursor: pointer; }
+.lf-updir svg, .lf-gohome svg, .lf-help-tools { width: 1.4em; height: 1.4em; display: block; }
+.lf-help-tools, .lf-help-x { display: none; }   /* gear shows on mobile, ✕ while the menu is open */
+.lf-help-top svg { width: 1.05em; height: 1.05em; }   /* solid ?-circle reads heavy, like the github mark — trim a touch */
+/* hover-capable devices only — otherwise a tap leaves the icon stuck cyan on touch */
+@media (hover: hover) { .lf-help:hover, .lf-updir:hover, .lf-gohome:hover { color: var(--accent); } }
+.lf-search { color: var(--yellow); }
+.lf-search-prompt { font-weight: 700; }
+.lf-caret { animation: lf-blink 1s steps(1) infinite; }
+@keyframes lf-blink { 50% { opacity: 0; } }
+/* while searching (desktop /), the search takes over the whole status bar */
+.lf-searching .lf-status-left { display: none; }
+.lf-searching .lf-status-right { flex: 1 1 auto; }
+.lf-searching .lf-status-right > :not(.lf-search) { display: none; }
+.lf-searching .lf-search { display: flex; flex: 1 1 auto; align-items: baseline; }
+
+/* top-bar controls: email, github, light/dark toggle — a right-aligned
+   group. Each sits in an equal-width box with its glyph centred, so the spacing
+   reads even despite the icons being drawn at different visual weights. */
+.lf-controls { margin-left: auto; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 0.5ch; }
+.lf-icon, .lf-theme-toggle {
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.7em; height: 1.6em; padding: 0;   /* ≥24px tap target; svg stays 1.1em so the icon looks the same */
+  background: transparent; border: 0;
+  color: var(--fg-dim); text-decoration: none; cursor: pointer;
+}
+.lf-icon svg, .lf-theme-toggle svg { width: 1.1em; height: 1.1em; display: block; }
+.lf-icon[aria-label="github"] svg { width: 1em; height: 1em; }  /* filled mark reads heavier — trim a touch */
+.lf-theme-toggle svg { width: 1.3em; height: 1.3em; }  /* crescent reads lighter — bump to match */
+@media (hover: hover) { .lf-icon:hover, .lf-theme-toggle:hover { color: var(--accent); } }   /* no sticky cyan on touch */
+
+/* ── columns ───────────────────────────────────────────────────────────── */
+/* One solid background everywhere — the gap reads as space, not a separator. */
+.lf-cols {
+  flex: 1 1 auto;
+  display: flex;
+  gap: 1.5ch;          /* keeps adjacent highlight rows from touching */
+  padding: 0 0.5ch;
+  background: var(--bg0);
+  min-height: 0;
+  position: relative;  /* anchor for the album photo-view overlay */
+}
+.lf-pane {
+  background: var(--bg0);
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 0;
+  scrollbar-width: none;  /* lf shows no scrollbars; avoids width jump on nav */
+}
+.lf-pane::-webkit-scrollbar,
+.lf-reader-body::-webkit-scrollbar { width: 0; height: 0; }
+.lf-parent  { flex: 2 1 0; }
+.lf-current { flex: 3 1 0; }
+.lf-preview { flex: 8 1 0; padding: 0.4em 0.8ch; }
+
+/* ── entry lists ───────────────────────────────────────────────────────── */
+.lf-list { list-style: none; margin: 0; padding: 0.2em 0; }
+.lf-entry {
+  height: var(--row);
+  line-height: var(--row);
+  padding: 0 1ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.lf-entry a {
+  text-decoration: none; color: inherit;
+  display: flex; justify-content: space-between; align-items: baseline; gap: 1.5ch;
+}
+/* lf `info` column: filename left, mtime/date right-aligned */
+.lf-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* the date column matches the row text exactly — same colour, size and font;
+   tabular figures + pre keep the day padding aligned */
+.lf-info { flex: 0 0 auto; color: inherit; white-space: pre; font-variant-numeric: tabular-nums; }
+/* info column mode — which of size/time shows is set by a root class (zn/zs/zt/za) */
+.lf-isize, .lf-itime { display: none; }
+.lf--info-size .lf-isize { display: inline; }
+.lf--info-time .lf-itime { display: inline; }
+.lf--info-both .lf-isize, .lf--info-both .lf-itime { display: inline; }
+.lf--info-both .lf-isize { margin-right: 1.5ch; }
+/* marked entries (space) */
+.lf-entry.lf-marked { box-shadow: inset 0.3ch 0 0 var(--yellow); }
+
+/* file colours, following standard `ls` (Ghostty palette). Each type sets --c
+   (its colour); the entry text, the reverse-video cursor, the preview listing
+   and the mobile rules all read --c, so a type's colour lives in one place. */
+.lf-d   { --c: var(--dir);    font-weight: 700; }  /* directory — bold, ls-style */
+.lf-f   { --c: var(--file);   font-weight: 500; }  /* regular file — medium */
+.lf-arc { --c: var(--red);    font-weight: 700; }  /* archive */
+.lf-img { --c: var(--purple); font-weight: 700; }  /* image / video */
+.lf-aud { --c: var(--aqua);   font-weight: 500; }  /* audio — medium */
+.lf-ln  { --c: var(--link);   font-weight: 700; }  /* symlink (ls cyan) */
+.lf-entry { color: var(--c, var(--fg)); }
+/* hover only on real pointers — avoids the sticky highlight that lingers on
+   touch after tapping + going back */
+@media (hover: hover) { .lf-entry:hover { background: var(--bg1); } }
+
+/* the lf cursor: reverse-video on the whole row (parent pane uses .lf-active).
+   Two classes so it outranks the :hover background above. */
+.lf-entry.lf-cursor, .lf-entry.lf-active { background: var(--c, var(--fg)); color: var(--bg0); }
+.lf-cursor a, .lf-active a { color: inherit; }
+/* with JS, keep the cursor hidden until it's placed, so you never see it
+   jump from the server's default spot to the remembered/came-from entry */
+html.js .lf:not(.lf-ready) .lf-cursor { background: transparent; color: inherit; }
+
+/* empty directory marker: reverse-video, only as wide as the word */
+.lf-empty {
+  display: inline-block;
+  margin: 0.3em 1ch;
+  padding: 0 0.5ch;
+  background: var(--fg);
+  color: var(--bg0);
+}
+
+/* hidden entries (front matter `hidden: true`) — toggled with `zh`, persisted.
+   Hidden by default; revealed in their normal colour (just the leading dot
+   marks them as hidden), like lf. */
+.lf-hidden { display: none; }
+.lf--show-hidden .lf-hidden { display: block; }
+
+/* ── preview pane (column 3) ───────────────────────────────────────────── */
+.lf-prev { animation: lf-fade 0.05s ease-out; }
+@keyframes lf-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* a directory previews as a plain file listing */
+.lf-dirprev-list { list-style: none; margin: 0; padding: 0; }
+.lf-dirprev-list li { padding: 0; }
+.lf-dirprev-list a {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 1.5ch;
+  padding: 0 0.5ch; color: inherit; text-decoration: none;
+  border-radius: 2px; border-bottom: 1px solid transparent;  /* reserved so will-select adds no row shift */
+}
+.lf-dirprev-list a:hover { background: var(--bg1); }
+.lf-dirprev-list li { color: var(--c, var(--fg)); }  /* type class on the li sets --c + weight */
+/* the entry the cursor lands on when you enter this dir — full-column underline */
+.lf-dirprev-list .lf-will-select > a { border-bottom-color: currentColor; }
+
+/* an image preview fills the column width aligned to the top — or, when it's too
+   tall to fit, full height aligned left. Always fits (no crop, no scrolling). */
+.lf-prev:has(> .lf-imgprev) { height: 100%; }
+.lf-imgprev {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: left top;
+}
+
+/* a file previews as its raw markdown source, like cat-ing it in lf */
+.lf-srcprev {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.92em;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--fg);
+}
+
+/* ── markdown prose (preview source-style markers) ─────────────────────── */
+.lf-prose { max-width: 78ch; }
+.lf-prose h1, .lf-prose h2, .lf-prose h3, .lf-prose h4 {
+  color: var(--yellow); line-height: 1.3; margin: 1.2em 0 0.4em;
+}
+.lf-prose h1::before { content: "# ";    color: var(--gray); }
+.lf-prose h2::before { content: "## ";   color: var(--gray); }
+.lf-prose h3::before { content: "### ";  color: var(--gray); }
+.lf-prose h4::before { content: "#### "; color: var(--gray); }
+.lf-prose p { margin: 0.6em 0; }
+.lf-prose a { color: var(--blue); text-underline-offset: 2px; }
+.lf-prose a:hover { color: var(--aqua); }
+.lf-prose strong { color: var(--orange); }
+.lf-prose em { color: var(--purple); }
+.lf-prose ul, .lf-prose ol { padding-left: 2.5ch; }
+.lf-prose li { margin: 0.2em 0; }
+.lf-prose ul li::marker { content: "- "; color: var(--gray); }
+.lf-prose blockquote {
+  margin: 0.8em 0; padding: 0.2em 1.4ch;
+  border-left: 2px solid var(--bg3); color: var(--fg-dim);
+}
+.lf-prose hr { border: none; border-top: 1px dashed var(--bg2); margin: 1.4em 0; }
+.lf-prose code {
+  background: var(--bg1); padding: 0.05em 0.5ch; border-radius: 2px;
+  color: var(--aqua); font-size: 0.95em;
+}
+.lf-prose pre {
+  background: var(--bg1); padding: 0.8em 1.2ch; border-radius: 4px;
+  overflow-x: auto; border: 1px solid var(--bg2);
+}
+.lf-prose pre code { background: none; padding: 0; color: inherit; }
+.lf-prose img { max-width: 100%; border-radius: 4px; }
+.lf-prose table { border-collapse: collapse; margin: 0.8em 0; }
+.lf-prose th, .lf-prose td { border: 1px solid var(--bg2); padding: 0.3em 1ch; }
+.lf-prose th { background: var(--bg1); color: var(--yellow); }
+
+/* ── syntax highlighting (Chroma, class-based) ─────────────────────────── */
+/* Token colours only — the block itself (background, border, padding) is the
+   .lf-prose pre rule above, so code blocks share the site surface in both
+   themes. Dark = onedark; light recolours via the palette vars below. */
+.chroma { tab-size: 4; -webkit-text-size-adjust: none; color: #abb2bf; }
+.chroma .lnlinks { outline: none; text-decoration: none; color: inherit; }
+.chroma .lntd { vertical-align: top; padding: 0; margin: 0; border: 0; }
+.chroma .lntable { border-spacing: 0; padding: 0; margin: 0; border: 0; }
+.chroma .line { display: flex; }
+.chroma .hl { background-color: #3d4148; }
+.chroma .lnt, .chroma .ln { white-space: pre; user-select: none; margin-right: 0.4em; padding: 0 0.4em; color: #55595f; }
+.chroma .k, .chroma .kd, .chroma .kn, .chroma .kp, .chroma .kr { color: #c678dd; }  /* keywords */
+.chroma .kc, .chroma .kt, .chroma .nc, .chroma .nb, .chroma .bp { color: #e5c07b; } /* consts, types, builtins */
+.chroma .n, .chroma .na, .chroma .no, .chroma .ni, .chroma .ne, .chroma .nl,
+.chroma .nn, .chroma .nx, .chroma .py, .chroma .nt, .chroma .nv, .chroma .vc,
+.chroma .vg, .chroma .vi, .chroma .vm, .chroma .gd { color: #e06c75; }              /* names, tags, deleted */
+.chroma .nd { color: #61afef; }                                                     /* decorators */
+.chroma .nf { color: #61afef; font-weight: 700; }                                   /* functions */
+.chroma .fm { color: #56b6c2; font-weight: 700; }
+.chroma .s, .chroma .sa, .chroma .sb, .chroma .sc, .chroma .dl, .chroma .sd,
+.chroma .s2, .chroma .se, .chroma .sh, .chroma .si, .chroma .sx, .chroma .sr,
+.chroma .s1, .chroma .ss { color: #98c379; }                                        /* strings */
+.chroma .gi { color: #98c379; font-weight: 700; }                                   /* inserted */
+.chroma .m, .chroma .mb, .chroma .mf, .chroma .mh, .chroma .mi, .chroma .il,
+.chroma .mo { color: #d19a66; }                                                     /* numbers */
+.chroma .o, .chroma .ow, .chroma .or { color: #56b6c2; }                            /* operators */
+.chroma .p { color: #abb2bf; }                                                      /* punctuation */
+.chroma .c, .chroma .ch, .chroma .cm, .chroma .c1, .chroma .cs, .chroma .cp,
+.chroma .cpf { color: #7f848e; }                                                    /* comments */
+/* light theme: same groups, recoloured through the Tomorrow palette vars so
+   code follows the T toggle like everything else (weights carry over) */
+:root[data-theme="light"] .chroma { color: var(--fg); }
+:root[data-theme="light"] .chroma .hl { background-color: var(--bg2); }
+:root[data-theme="light"] .chroma .lnt, :root[data-theme="light"] .chroma .ln { color: var(--gray); }
+:root[data-theme="light"] .chroma .k, :root[data-theme="light"] .chroma .kd,
+:root[data-theme="light"] .chroma .kn, :root[data-theme="light"] .chroma .kp,
+:root[data-theme="light"] .chroma .kr { color: var(--purple); }
+:root[data-theme="light"] .chroma .kc, :root[data-theme="light"] .chroma .kt,
+:root[data-theme="light"] .chroma .nc, :root[data-theme="light"] .chroma .nb,
+:root[data-theme="light"] .chroma .bp { color: var(--yellow); }
+:root[data-theme="light"] .chroma .n, :root[data-theme="light"] .chroma .na,
+:root[data-theme="light"] .chroma .no, :root[data-theme="light"] .chroma .ni,
+:root[data-theme="light"] .chroma .ne, :root[data-theme="light"] .chroma .nl,
+:root[data-theme="light"] .chroma .nn, :root[data-theme="light"] .chroma .nx,
+:root[data-theme="light"] .chroma .py, :root[data-theme="light"] .chroma .nt,
+:root[data-theme="light"] .chroma .nv, :root[data-theme="light"] .chroma .vc,
+:root[data-theme="light"] .chroma .vg, :root[data-theme="light"] .chroma .vi,
+:root[data-theme="light"] .chroma .vm, :root[data-theme="light"] .chroma .gd { color: var(--red); }
+:root[data-theme="light"] .chroma .nd, :root[data-theme="light"] .chroma .nf { color: var(--blue); }
+:root[data-theme="light"] .chroma .fm, :root[data-theme="light"] .chroma .o,
+:root[data-theme="light"] .chroma .ow, :root[data-theme="light"] .chroma .or { color: var(--aqua); }
+:root[data-theme="light"] .chroma .s, :root[data-theme="light"] .chroma .sa,
+:root[data-theme="light"] .chroma .sb, :root[data-theme="light"] .chroma .sc,
+:root[data-theme="light"] .chroma .dl, :root[data-theme="light"] .chroma .sd,
+:root[data-theme="light"] .chroma .s2, :root[data-theme="light"] .chroma .se,
+:root[data-theme="light"] .chroma .sh, :root[data-theme="light"] .chroma .si,
+:root[data-theme="light"] .chroma .sx, :root[data-theme="light"] .chroma .sr,
+:root[data-theme="light"] .chroma .s1, :root[data-theme="light"] .chroma .ss,
+:root[data-theme="light"] .chroma .gi { color: var(--green); }
+:root[data-theme="light"] .chroma .m, :root[data-theme="light"] .chroma .mb,
+:root[data-theme="light"] .chroma .mf, :root[data-theme="light"] .chroma .mh,
+:root[data-theme="light"] .chroma .mi, :root[data-theme="light"] .chroma .il,
+:root[data-theme="light"] .chroma .mo { color: var(--orange); }
+:root[data-theme="light"] .chroma .p { color: var(--fg); }
+:root[data-theme="light"] .chroma .c, :root[data-theme="light"] .chroma .ch,
+:root[data-theme="light"] .chroma .cm, :root[data-theme="light"] .chroma .c1,
+:root[data-theme="light"] .chroma .cs, :root[data-theme="light"] .chroma .cp,
+:root[data-theme="light"] .chroma .cpf { color: var(--gray); }
+
+/* fastfetch easter egg — ASCII logo (.config/fastfetch/logo.txt) + info block */
+.lf-fetch { display: flex; flex-wrap: wrap; gap: 0.6em 3ch; align-items: flex-start; font-family: var(--mono); line-height: 1.3; }
+.lf-fetch-art { margin: 0; overflow: visible; white-space: pre;
+  color: var(--dir); font-size: 0.78em; line-height: 1.1; }   /* green logo, in reader AND preview */
+.lf-prose .lf-fetch-art { background: none; padding: 0; border: 0; overflow: visible; }   /* undo the reader's code-block pre look (incl. its scrollbar) */
+.lf-fetch-info > div { white-space: nowrap; }
+.lf-fetch-id { color: var(--dir); font-weight: 700; }
+.lf-fetch-sep { color: var(--gray); }
+.lf-fetch-k { color: var(--dir); font-weight: 700; }
+.lf-fetch-blocks { margin-top: 0.5em; }
+.lf-fetch-blocks > div { display: flex; }
+.lf-fetch-blocks span { display: inline-block; width: 1.6ch; height: 1.1em; }
+/* the opened logo.txt page renders big (capped, and scaled to fit narrow screens);
+   the preview / beside-info copies keep the small 0.78em from above */
+.lf-prose .lf-fetch-art--solo { font-size: min(2em, 4.5vw); line-height: 1.05; }
+
+/* denied directory (/root): the error message gets a red highlight behind just
+   the words (lf-style), not the whole bar; the 0/0 position is hidden */
+.lf-status-err { background: var(--red); color: var(--bg0); padding: 0 0.6ch; }
+.lf-statusbar--err #lf-pos { display: none; }
+
+/* ── reader (full-screen "open in editor" view) ────────────────────────── */
+/* slightly darker backdrop so opening a post feels like a different program */
+.lf-reader { background: var(--reader-bg); }
+.lf-reader .lf-topbar { background: var(--reader-bg); }
+
+/* Neovim-default-style statusline: filename left, line,col + %P right */
+.lf-nvstatus { background: var(--bg3); color: var(--fg); font-size: 0.85em; gap: 2ch; }
+.lf-nv-file  { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lf-nv-right { margin-left: auto; flex: 0 0 auto; display: flex; gap: 2.5ch; }
+.lf-nv-ruler, .lf-nv-pct { color: var(--fg); }
+.lf-nv-pct { min-width: 3.5ch; text-align: right; }
+
+.lf-reader-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  background: var(--reader-bg);
+  padding: 2em 2ch 4em;
+  scrollbar-width: none;  /* position shown by the %P ruler instead, nvim-style */
+  outline: none;
+}
+.lf-reader-prose { max-width: 80ch; margin: 0 auto; }
+.lf-reader-prose > :first-child { margin-top: 0; }
+/* the full reader shows rendered "visual" markdown, not the source-style
+   preview: drop the #/## heading markers and use real bullet dots. The double
+   class outranks the base .lf-prose rules regardless of source order. */
+.lf-reader-prose.lf-prose h1::before,
+.lf-reader-prose.lf-prose h2::before,
+.lf-reader-prose.lf-prose h3::before,
+.lf-reader-prose.lf-prose h4::before { content: none; }
+.lf-reader-prose.lf-prose ul li::marker { content: "• "; color: var(--gray); }
+
+/* ── photo page (one picture in an album, its own URL) ─────────────────── */
+/* the full image viewer: the picture centred and fit within, with a tasteful
+   border. (Distinct from the preview column's full-width / top-left rule.) */
+.lf-photo-body {
+  flex: 1 1 auto; min-height: 0; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.5em 2ch; background: var(--reader-bg);
+}
+.lf-photo-img {
+  max-width: 100%; max-height: 100%; object-fit: contain;
+  border: 1px solid var(--bg2); border-radius: 3px;
+}
+/* photo status bar = two buttons: left (title·size·dimensions) scrolls sideways
+   when long (swipe) and taps open the full info box; right (album + n/n) is fixed
+   and taps open the album grid. */
+.lf-photo .lf-status-left { white-space: pre; overflow-x: auto; text-overflow: clip; scrollbar-width: none; }
+.lf-photo .lf-status-left::-webkit-scrollbar { width: 0; height: 0; }
+.lf-photo-info, .lf-photo-album { font: inherit; color: inherit; background: transparent; border: 0; padding: 0; cursor: pointer; }
+.lf-photo-info { text-align: left; }
+.lf-photo-album { flex: 0 0 auto; margin-left: 2ch; white-space: nowrap; }
+.lf-photo-album .lf-pos { color: inherit; }   /* n/n tracks the button colour, so hover highlights the whole button */
+@media (hover: hover) { .lf-photo-album:hover { color: var(--accent); } }
+.lf-infobox {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  padding: 2em; background: rgba(0, 0, 0, 0.55);
+}
+.lf-infobox[hidden] { display: none; }
+.lf-infobox-dl {
+  margin: 0; max-width: 90vw;
+  display: grid; grid-template-columns: max-content 1fr; gap: 0.35em 1.5ch;
+  padding: 1.2em 1.5em; font-size: 0.95em;
+  background: var(--bg1); border: 1px solid var(--bg3); border-radius: 4px;
+}
+.lf-infobox-dl dt { color: var(--gray); }
+.lf-infobox-dl dd { margin: 0; color: var(--fg); }
+
+/* album grid overlay — every photo as a thumbnail; columns auto-fit the window
+   (down to 2 on mobile), the grid scrolls if it overflows. */
+.lf-albumbox {
+  position: fixed; inset: 0; z-index: 55;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.5em; background: rgba(0, 0, 0, 0.6);
+}
+.lf-albumbox[hidden] { display: none; }
+.lf-albumbox-panel {
+  display: flex; flex-direction: column;
+  width: min(92vw, 860px); max-height: 92vh; overflow: hidden;
+  background: var(--bg1); border: 1px solid var(--bg3); border-radius: 4px;
+}
+.lf-albumbox-head {
+  flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between;
+  padding: 0.6em 1em; border-bottom: 1px solid var(--bg2);
+}
+.lf-albumbox-title { color: var(--dir); font-weight: 700; }   /* an album is a dir → green */
+.lf-albumbox-close { font: inherit; font-size: 1.2em; line-height: 1; color: var(--gray); background: transparent; border: 0; cursor: pointer; }
+.lf-albumscroll { flex: 1 1 auto; overflow-y: auto; padding: 1em; }
+/* masonry: independent columns (CSS multi-column) so each picture keeps its own
+   aspect ratio and stacks tightly — no square boxes, no letterbox gaps */
+.lf-albumgrid { columns: 240px; column-gap: 0.6ch; }   /* column-width, not -count → stays screen-aware; wider = fewer, bigger thumbs */
+.lf-albumthumb { display: block; margin: 0 0 0.6ch; break-inside: avoid; overflow: hidden; border-radius: 3px; }
+.lf-albumthumb img { width: 100%; height: auto; display: block; }
+/* one selection box that moves: it opens on the photo you're viewing (lf.js
+   focuses .lf-albumthumb--cur) and follows the keys. Plain :focus (not
+   :focus-visible) so it shows even when the grid is opened with the mouse. */
+.lf-albumthumb:focus { position: relative; z-index: 1; outline: none; box-shadow: 0 0 0 3px var(--accent); }
+@media (hover: hover) { .lf-albumbox-close:hover { color: var(--accent); } }
+/* mobile only: clean up/down chevrons to step through the album (no keyboard).
+   Sit below the image, a little above the status bar — no box, just the arrows. */
+.lf-photo-nav { display: none; }
+.lf-photo-arrow {
+  background: none; border: 0; padding: 0.4em 0.6em; cursor: pointer;
+  color: var(--fg-dim); display: inline-flex; -webkit-tap-highlight-color: transparent;
+}
+.lf-photo-arrow:active { color: var(--accent); }
+.lf-photo-arrow svg { width: 1.5em; height: 1.5em; display: block; }
+
+/* ── help modal (?) ────────────────────────────────────────────────────── */
+.lf-modal {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.55);
+}
+.lf-modal[hidden] { display: none; }
+.lf-modal-box {
+  background: var(--bg0); border: 1px solid var(--bg3);
+  border-radius: 6px; padding: 1.2em 2ch; min-width: 32ch;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+.lf-modal-title { color: var(--yellow); font-weight: 700; margin-bottom: 0.8em; }
+.lf-keys { width: 100%; border-collapse: collapse; }
+.lf-keys td { padding: 0.15em 1ch; vertical-align: top; }
+.lf-keys td:first-child { color: var(--aqua); white-space: nowrap; font-weight: 700; }
+.lf-keys td:last-child { color: var(--fg-dim); white-space: nowrap; }  /* box grows to fit, no wrapping */
+.lf-modal-foot { margin-top: 1em; color: var(--gray); font-size: 0.85em; text-align: center; }
+
+/* mobile: the status bar becomes a one-row menu of tappable words, and "find"
+   turns it into a "/" prompt. Hidden on desktop; revealed by the media query. */
+.lf-statusmenu { display: none; }
+.lf-menu, .lf-find { display: none; }
+.lf-menu-item { font: inherit; color: var(--fg); background: transparent; border: 0; padding: 0; cursor: pointer; flex: 0 0 auto; }
+.lf-menu-item.lf-on { color: var(--accent); font-weight: 700; }   /* active sort / on — just colour, no box */
+.lf-menu-back { color: var(--gray); font-size: 1.3em; line-height: 1; }   /* ‹ back to find/sort/show */
+/* three views (top / sort / show) — only the active one shows; "sort"/"show"
+   swap the row to their options, "‹" returns to the top-level choices */
+.lf-menu-view { display: none; flex: 0 0 auto; align-items: center; gap: 2.2ch; }   /* left-aligned; the bar scrolls if a sub-menu is wide */
+.lf-menu[data-view="top"]  .lf-menu-view[data-view="top"],
+.lf-menu[data-view="sort"] .lf-menu-view[data-view="sort"],
+.lf-menu[data-view="show"] .lf-menu-view[data-view="show"] { display: flex; }
+.lf-find { align-items: center; gap: 0.6ch; width: 100%; color: var(--yellow); }
+.lf-find-prompt { font-weight: 700; }
+.lf-find-input { flex: 1; min-width: 0; font: inherit; color: var(--yellow); background: transparent; border: 0; outline: 0; padding: 0; caret-color: var(--yellow); }
+
+/* ── 404 ───────────────────────────────────────────────────────────────── */
+.lf-404 { color: var(--fg-dim); }
+.lf-404 b { color: var(--accent); }
+.lf-404 a { color: var(--blue); }
+
+/* ── responsive ────────────────────────────────────────────────────────── */
+.lf-path-m { display: none; }   /* desktop uses .lf-path-d */
+
+/* mobile: two columns (parent | current, no preview), and the status/title
+   describe the LEFT column's highlight (the current directory). 600px (not 800)
+   so a half-screen desktop window stays desktop. Keep in sync with lf.js mqMobile. */
+@media (max-width: 600px) {
+  .lf-preview { display: none; }
+  .lf-parent  { flex: 2 1 0; }   /* left thinner; its names may truncate */
+  .lf-current { flex: 5 1 0; }   /* right gets the room */
+
+  /* roomier for touch: scale the whole UI up. A bigger base font grows the text,
+     and the em-based rows & bars grow with it, so everything stays proportional
+     (mobile only). */
+  .lf { font-size: 16px; --row: 1.7em; }
+  .lf-bar { padding: 0.4em 1ch; }
+  /* Status bars on mobile: directory, reader and photo share ONE bigger,
+     touch-sized height + a flat L/R buffer so edge text clears rounded screen
+     corners (the .lf safe-area insets are 0 in portrait). */
+  .lf-statusbar, .lf-nvstatus { min-height: 2.9em; padding: 0.25em 2ch; font-size: 1em; }
+  /* Directory drops its stat readout — touch can't move the highlight the way
+     j/k does. In its place, three icon controls with generous tap areas (icons
+     stay 1.4em): ← back (left), ⌂ home (centre), gear menu (right). */
+  #lf-status { display: none; }
+  .lf-status-right { margin-left: auto; align-self: stretch; }
+  .lf-statusbar { position: relative; }                 /* anchor for the centred home icon */
+  /* each control fills the bar height + side padding → roomy tap targets */
+  .lf-updir, .lf-help { display: inline-flex; align-self: stretch; align-items: center; justify-content: center; padding: 0 0.9em; }
+  .lf-gohome { display: inline-flex; align-items: center; justify-content: center; position: absolute; left: 50%; top: 0; bottom: 0; transform: translateX(-50%); padding: 0 0.9em; }
+  /* the status-bar menu button: gear icon; ✕ while the menu is open. The
+     top-bar ? is desktop-only (the gear menu replaces the cheatsheet here). */
+  .lf-help-top { display: none; }
+  .lf-help-tools { display: block; }
+  .lf-menuopen .lf-help-tools { display: none; }
+  .lf-menuopen .lf-help-x { display: inline; font-size: 1.6em; line-height: 1; }
+  .lf-menuopen .lf-updir, .lf-menuopen .lf-gohome { display: none; }
+  .lf-topbar { padding: 0.55em 1ch; font-size: 1.05em; }
+
+  /* the photo album's tap-to-move chevrons (keyboardless mobile) */
+  /* ^/v centered in the bar; ← sits to their left (absolute, out of the centring) */
+  .lf-photo-nav { position: relative; display: flex; flex: 0 0 auto; justify-content: center; align-items: center; gap: 3ch; min-height: 1.6em; padding: 0.4em 0 1em; }
+  .lf-photo-back { position: absolute; left: 1ch; top: 50%; transform: translateY(-50%); }
+  .lf-albumgrid { column-count: 2; column-width: auto; }   /* album masonry: down to 2 columns */
+
+  /* Every shown path bar — the miller mobile path AND the reader/photo single
+     path — is a flex row whose LAST crumb (current dir / open file) ellipsizes as
+     the final fallback; the crumbs above it are condensed to single letters by
+     lf.js (condensePath) first. */
+  .lf-path { display: flex; min-width: 0; }
+  .lf-path > * { flex: 0 0 auto; }
+  .lf-path > .lf-crumb:last-child { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lf-path-d { display: none; }   /* after .lf-path so it wins: hide miller's desktop path */
+
+  /* the stat readout is hidden above and the directory bar shows only the icon
+     controls (back / home / menu), so its n/n position goes too. */
+  #lf-pos { display: none; }
+
+  /* tap "?" → the status bar itself becomes a one-row menu of words; "find" →
+     a "/" prompt. #lf carries .lf-menuopen / .lf-finding. The menu scrolls
+     horizontally if the words don't all fit, keeping the bar one row tall. */
+  .lf-menuopen .lf-status-left { display: none; }
+  .lf-menuopen .lf-status-right > :not(.lf-help) { display: none; }
+  .lf-menuopen .lf-statusmenu { display: block; flex: 1 1 auto; min-width: 0; }
+  .lf-menuopen .lf-menu { display: flex; gap: 1.4ch; align-items: center; overflow-x: auto; scrollbar-width: none; }
+  .lf-menuopen .lf-menu::-webkit-scrollbar { width: 0; height: 0; }
+  .lf-menuopen.lf-finding .lf-menu { display: none; }
+  .lf-menuopen.lf-finding .lf-find { display: flex; }
+  /* while finding, show the match highlight in the current column */
+  .lf-finding .lf-current .lf-cursor { background: var(--c, var(--fg)); color: var(--bg0); }
+
+  /* right column: no pre-highlight (only feedback on tap); left keeps its
+     active highlight as normal */
+  .lf-current .lf-cursor { background: none; color: var(--c, var(--fg)); }
+  .lf-current .lf-entry:active { background: var(--bg2); }
+}

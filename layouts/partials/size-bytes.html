@@ -1,0 +1,18 @@
+{{- /*
+  size-bytes.html — numeric byte size for an entry (for sorting / data-size).
+  Files: their own content bytes — or, for a generated photo page, the `bytes`
+  param (its image's real file size, since the page itself has no body). Dirs:
+  recursive total of contents (du-style). Follows a `link` entry to its target.
+*/ -}}
+{{- $e := . -}}
+{{- $t := partialCached "target.html" $e $e.RelPermalink -}}
+{{- $sz := 0 -}}
+{{- /* $t (the resolved target), not $e — so a page-kind symlink to a directory
+       still du's the directory (home is kind "home", hence not-page). */ -}}
+{{- if ne $t.Kind "page" -}}
+  {{- range $t.RegularPagesRecursive -}}
+    {{- if isset .Params "bytes" }}{{ $sz = add $sz (int .Params.bytes) }}{{ else }}{{ $sz = add $sz (len .RawContent) }}{{ end -}}
+  {{- end -}}
+{{- else if isset $t.Params "bytes" -}}{{ $sz = int $t.Params.bytes -}}
+{{- else -}}{{ $sz = len $t.RawContent -}}{{- end -}}
+{{- return $sz -}}

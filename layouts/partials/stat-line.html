@@ -1,0 +1,35 @@
+{{- /*
+  stat-line.html — the `ls -l` line minus the time (the time is a separate span
+  so mobile can drop it): "drwxr-xr-x 1 dylan dylan   76B".
+
+  Modes mirror a real terminal (lf, i.e. `ls -lL` — symlinks are dereferenced):
+    - symlink  → its TARGET's perms (a link to a dir shows drwxr-xr-x, to a file
+                 -rw-r--r--); a link we can't follow (external/broken) falls back
+                 to lrwxrwxrwx, like ls -L on a dangling link.
+    - directory→ drwxr-xr-x (755)
+    - image/video → -rwxr-xr-x (755): photos come off cameras/phones/SD cards
+                 (FAT/MTP have no Unix perms, so everything gets the +x bit).
+    - regular file → -rw-r--r-- (644)
+  Override any of it with `perms`. owner/group are the site user, or `root` for
+  the Unix dirs (override with `owner`).
+*/ -}}
+{{- $e := . -}}
+{{- $perms := $e.Params.perms -}}
+{{- if not $perms -}}
+  {{- $t := $e -}}
+  {{- if or $e.Params.link $e.Params.latest }}{{ $t = partialCached "target.html" $e $e.RelPermalink }}{{ end -}}
+  {{- if or $t.Params.link $t.Params.latest -}}
+    {{- $perms = "lrwxrwxrwx" -}}
+  {{- else if ne $t.Kind "page" -}}
+    {{- $perms = "drwxr-xr-x" -}}
+  {{- else if eq (partial "ftype.html" $t) "lf-img" -}}
+    {{- $perms = "-rwxr-xr-x" -}}
+  {{- else -}}
+    {{- $perms = "-rw-r--r--" -}}
+  {{- end -}}
+{{- end -}}
+{{- $owner := site.Params.user | default "user" -}}
+{{- $group := site.Params.group | default $owner -}}
+{{- if $e.Params.unix }}{{ $owner = "root" }}{{ $group = "root" }}{{ end -}}
+{{- with $e.Params.owner }}{{ $owner = . }}{{ $group = . }}{{ end -}}
+{{- return (printf "%s 1 %s %s   %s" $perms $owner $group (partial "size.html" $e)) -}}

@@ -1,0 +1,8 @@
+{{- /*
+  name.html — the lf display name for an entry: its title, verbatim. The title
+  carries the real filename and extension (or none): "about.md", "lfrc",
+  ".profile", "photo.png". Nothing is auto-appended — a file reads as markdown
+  only if its title actually ends in ".md". (Used as-is, and by ftype.html to
+  classify the colour by extension.)
+*/ -}}
+{{- return .Title -}}

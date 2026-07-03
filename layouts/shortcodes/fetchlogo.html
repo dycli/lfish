@@ -1,0 +1,4 @@
+{{- /* render just the ascii logo (.config/fastfetch/logo.txt) — used by logo.md */ -}}
+{{- $logoFile := "content/config/fastfetch/logo.txt" -}}
+{{- $logo := "" }}{{ if fileExists $logoFile }}{{ $logo = os.ReadFile $logoFile }}{{ end -}}
+{{- with $logo }}<pre class="lf-fetch-art lf-fetch-art--solo">{{ trim . "\n" }}</pre>{{ end -}}

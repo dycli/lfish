@@ -1,0 +1,19 @@
+{{- $title := .Title -}}
+{{- if .IsHome }}{{ $title = site.Title }}{{ else }}{{ $title = printf "%s · %s@%s" .Title (site.Params.user | default "") (site.Params.host | default site.Title) }}{{ end -}}
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content, viewport-fit=cover">
+<script>document.documentElement.classList.add("js");try{var t=localStorage.getItem("lf:theme");if(t)document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+<title>{{ $title }}</title>
+<meta name="description" content="{{ with .Description }}{{ . }}{{ else }}{{ with .Summary }}{{ . | plainify | truncate 160 }}{{ else }}{{ site.Params.description }}{{ end }}{{ end }}">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" type="image/svg+xml" href="{{ "/favicon.svg" | relURL }}?v=6">
+<link rel="icon" href="{{ "/favicon.png" | relURL }}?v=6">
+{{- /* PWA: makes the site installable as an app (no prompt — see lf.js) */}}
+<link rel="manifest" href="{{ "/manifest.webmanifest" | relURL }}">
+<meta name="theme-color" content="#0d1422">
+<link rel="apple-touch-icon" href="{{ "/icon-192.png" | relURL }}?v=6">
+{{- $css := resources.Get "css/lf.css" | resources.Minify | resources.Fingerprint -}}
+<link rel="stylesheet" href="{{ $css.RelPermalink }}" integrity="{{ $css.Data.Integrity }}">
+{{- with .OutputFormats.Get "rss" }}
+<link rel="alternate" type="application/rss+xml" href="{{ .RelPermalink }}" title="{{ site.Title }}">
+{{- end }}

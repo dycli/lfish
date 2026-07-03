@@ -1,0 +1,221 @@
+{{- /*
+  miller.html — the lf three-pane (miller columns) view.
+
+  Treats Hugo's content tree as a filesystem:
+    - a "directory" is the home page or a section
+    - a "file" is a regular page
+  and renders three columns for the page passed in (.):
+    parent listing | current directory listing | preview of the selection
+
+  The model mirrors lf exactly: you are always *inside* a directory with one
+  entry highlighted. A single page == "inside its section, this file selected".
+*/ -}}
+{{- $page := . -}}
+
+{{- /* Where the absolute-filesystem tree lives in the content tree. The tree
+       itself is site content (marked `unix: true`, its top `fsroot: true`);
+       these params only name its content path. */ -}}
+{{- $lfp := site.Params.lf | default dict -}}
+{{- $fsRoot := index $lfp "root" | default "/fs" -}}
+{{- $fsHome := index $lfp "home" | default "/fs/home" -}}
+{{- /* Set params.lf.rootfs = false (or just don't author the tree) to drop the
+       Unix layer: ~ becomes the top and `h` stops there, like lf at /. */ -}}
+{{- $fsHomePage := false -}}
+{{- if ne (index $lfp "rootfs") false -}}
+  {{- with site.GetPage $fsHome }}{{ $fsHomePage = . }}{{ end -}}
+{{- end -}}
+
+{{- /* Resolve the directory we are "inside" and the selected entry. */ -}}
+{{- $dir := $page -}}
+{{- $selected := false -}}
+{{- if $page.IsPage -}}
+  {{- $dir = $page.Parent -}}
+  {{- $selected = $page -}}
+{{- end -}}
+
+{{- /* Pure per-page partials (entries, linkhref, edate, ftype, stat-line, mtime,
+       infocol, preview) are partialCached by RelPermalink: every page that shows
+       a directory re-renders the same rows, so the cache collapses that work. */ -}}
+{{- $entries := partialCached "entries.html" $dir $dir.RelPermalink -}}
+{{- $visible := where $entries "Params.hidden" "!=" true -}}
+{{- if not $selected -}}
+  {{- with index $visible 0 }}{{ $selected = . }}{{ end -}}
+{{- end -}}
+
+{{- /* Resolve the parent directory (left column / `h` target). Easter egg:
+       home (dylan) lives under a faked /home, and /fs is the top of it all. */ -}}
+{{- $parent := $dir.Parent -}}
+{{- if $page.IsHome -}}
+  {{- with $fsHomePage }}{{ $parent = . }}{{ end -}}
+{{- else if $dir.Params.fsroot -}}
+  {{- $parent = false -}}
+{{- end -}}
+{{- $upHref := "" -}}
+{{- with $parent }}{{ $upHref = .RelPermalink }}{{ end -}}
+
+{{- /* Index of the selected entry within the current directory. */ -}}
+{{- $selIdx := 0 -}}
+{{- range $i, $e := $entries -}}
+  {{- if and $selected (eq $e.Permalink $selected.Permalink) }}{{ $selIdx = $i }}{{ end -}}
+{{- end -}}
+
+{{- $user := site.Params.user | default "user" -}}
+{{- $host := site.Params.host | default site.Title -}}
+
+{{- /* The selected entry's display info; JS updates these live as the cursor moves. */ -}}
+{{- $selName := "" }}{{ $selStat := "" }}{{ $selTime := "" }}{{ $selLink := "" -}}
+{{- if $selected -}}
+  {{- $selName = partial "name.html" $selected -}}
+  {{- $selStat = partialCached "stat-line.html" $selected $selected.RelPermalink -}}
+  {{- $selTime = partialCached "mtime.html" $selected $selected.RelPermalink -}}
+  {{- if or $selected.Params.link $selected.Params.latest }}{{ $selLink = partialCached "linkhref.html" $selected $selected.RelPermalink }}{{ end -}}
+{{- end -}}
+
+<div class="lf lf--info-time" id="lf"
+     data-up="{{ $upHref }}"
+     data-here="{{ $dir.RelPermalink }}"
+     data-selected="{{ $selIdx }}">
+
+  {{- /* ── path / title bar ───────────────────────────────────────── */ -}}
+  <header class="lf-bar lf-topbar">
+    <a class="lf-prompt" href="{{ "/" | relURL }}" title="home">{{ $user }}@{{ $host }}</a><span class="lf-psep">:</span>
+    {{- /* Two path bars, toggled by CSS:
+           desktop (.lf-path-d) — ~-relative, follows the cursor (lf-here white);
+           mobile  (.lf-path-m) — the current directory with its last segment
+           white, and home shown absolute (/home/dylan) so `/` reaches root. */ -}}
+
+    {{- $rootHref := "/" | relURL }}{{ if $fsHomePage }}{{ with site.GetPage $fsRoot }}{{ $rootHref = .RelPermalink }}{{ end }}{{ end -}}
+
+    {{- /* desktop: ~ root (only the Unix world is absolute), chain blue, cursor white */ -}}
+    {{- $dabs := $page.Params.unix -}}
+    {{- $dchain := partial "crumbs.html" (dict "dir" $dir "abs" $dabs) -}}
+    {{- $dentrySep := cond (and $dabs (eq (len $dchain) 0)) "" "/" -}}
+    <span class="lf-path lf-path-d" id="lf-path">
+      <a href="{{ cond $dabs $rootHref ("/" | relURL) }}" class="lf-crumb lf-d">{{ cond $dabs "/" "~" }}</a>{{- range $idx, $c := $dchain -}}{{ if or (gt $idx 0) (not $dabs) }}<span class="lf-sep">/</span>{{ end }}<a href="{{ $c.href }}" class="lf-crumb lf-d">{{ $c.title }}</a>{{- end -}}{{- if $selName -}}<span class="lf-sep">{{ $dentrySep }}</span><span class="lf-crumb lf-here" id="lf-cwd-entry">{{ $selName }}</span>{{- end -}}
+    </span>
+
+    {{- /* mobile: current directory; last segment white; home shown absolute */ -}}
+    {{- $mabs := or (and $page.IsHome $fsHomePage) $page.Params.unix -}}
+    {{- $mchain := slice -}}
+    {{- if and $page.IsHome $fsHomePage -}}
+      {{- $mchain = slice (dict "href" $fsHomePage.RelPermalink "title" "home") (dict "href" ("/" | relURL) "title" $user) -}}
+    {{- else if not $page.IsHome -}}
+      {{- $mchain = partial "crumbs.html" (dict "dir" $dir "abs" $page.Params.unix) -}}
+    {{- end -}}
+    {{- $mlast := sub (len $mchain) 1 -}}
+    <span class="lf-path lf-path-m">
+      <a href="{{ cond $mabs $rootHref ("/" | relURL) }}" class="lf-crumb {{ cond (eq (len $mchain) 0) "lf-here" "lf-d" }}">{{ cond $mabs "/" "~" }}</a>{{- range $idx, $c := $mchain -}}{{ if or (gt $idx 0) (not $mabs) }}<span class="lf-sep">/</span>{{ end }}<a href="{{ $c.href }}" class="lf-crumb {{ cond (eq $idx $mlast) "lf-here" "lf-d" }}">{{ $c.title }}</a>{{- end -}}
+    </span>
+    {{ partial "controls.html" (dict "help" true) }}
+  </header>
+
+  <div class="lf-cols">
+
+    {{- /* ── parent pane ──────────────────────────────────────────── */ -}}
+    <nav class="lf-pane lf-parent" aria-label="parent directory">
+      {{- if $parent -}}
+        {{- $pentries := partialCached "entries.html" $parent $parent.RelPermalink -}}
+        <ul class="lf-list">
+          {{- range $pentries -}}
+            {{- $isdir := eq .Kind "section" -}}
+            {{- $href := partialCached "linkhref.html" . .RelPermalink -}}
+            {{- $active := eq $href $dir.RelPermalink -}}
+            {{- $ped := partialCached "edate.html" . .RelPermalink -}}
+            <li class="lf-entry {{ if $isdir }}lf-d{{ else }}{{ partialCached "ftype.html" . .RelPermalink }}{{ end }}{{ if $active }} lf-active{{ end }}{{ if .Params.hidden }} lf-hidden{{ end }}"
+                data-name="{{ partial "name.html" . }}" data-dir="{{ if $isdir }}1{{ else }}0{{ end }}" data-size="{{ partialCached "size-bytes.html" . .RelPermalink }}" data-time="{{ if not $ped.IsZero }}{{ $ped.Unix }}{{ else }}0{{ end }}">
+              <a href="{{ $href }}"{{ if hasPrefix $href "http" }} target="_blank" rel="noopener noreferrer"{{ end }}><span class="lf-name">{{ partial "name.html" . }}</span></a>
+            </li>
+          {{- end -}}
+        </ul>
+      {{- else -}}
+        <ul class="lf-list"></ul>
+      {{- end -}}
+    </nav>
+
+    {{- /* ── current directory pane ───────────────────────────────── */ -}}
+    <main class="lf-pane lf-current" aria-label="current directory">
+      {{- if $entries -}}
+      <ul class="lf-list" id="lf-list">
+        {{- range $i, $e := $entries -}}
+          {{- $isdir := eq $e.Kind "section" -}}
+          {{- $cur := and $selected (eq $e.Permalink $selected.Permalink) -}}
+          {{- $href := partialCached "linkhref.html" $e $e.RelPermalink -}}
+          {{- $ed := partialCached "edate.html" $e $e.RelPermalink -}}
+          <li class="lf-entry {{ if $isdir }}lf-d{{ else }}{{ partialCached "ftype.html" $e $e.RelPermalink }}{{ end }}{{ if $cur }} lf-cursor{{ end }}{{ if $e.Params.hidden }} lf-hidden{{ end }}"
+              data-href="{{ $href }}"
+              data-name="{{ partial "name.html" $e }}"
+              data-dir="{{ if $isdir }}1{{ else }}0{{ end }}"
+              data-hidden="{{ if $e.Params.hidden }}1{{ else }}0{{ end }}"
+              data-size="{{ partialCached "size-bytes.html" $e $e.RelPermalink }}"
+              data-time="{{ if not $ed.IsZero }}{{ $ed.Unix }}{{ else }}0{{ end }}"
+              data-stat="{{ partialCached "stat-line.html" $e $e.RelPermalink }}"
+              data-stattime="{{ partialCached "mtime.html" $e $e.RelPermalink }}"
+              data-symlink="{{ if or $e.Params.link $e.Params.latest }}{{ $href }}{{ end }}">
+            <a href="{{ $href }}"{{ if hasPrefix $href "http" }} target="_blank" rel="noopener noreferrer"{{ end }}><span class="lf-name">{{ partial "name.html" $e }}</span>{{ partialCached "infocol.html" $e $e.RelPermalink }}</a>
+          </li>
+        {{- end -}}
+      </ul>
+      {{- else -}}
+        <div class="lf-empty">{{ if $dir.Params.denied }}permission denied{{ else }}empty{{ end }}</div>
+      {{- end -}}
+    </main>
+
+    {{- /* ── preview pane ─────────────────────────────────────────── */ -}}
+    <section class="lf-pane lf-preview" id="lf-preview" aria-label="preview">
+      {{- range $i, $e := $entries -}}
+        {{- $cur := and $selected (eq $e.Permalink $selected.Permalink) -}}
+        {{- partialCached "preview.html" (dict "entry" $e "current" $cur) $e.RelPermalink $cur -}}
+      {{- end -}}
+    </section>
+
+  </div>
+
+  {{- /* ── status line ──────────────────────────────────────────── */ -}}
+  <footer class="lf-bar lf-statusbar{{ if $dir.Params.denied }} lf-statusbar--err{{ end }}">
+    {{- $selRank := 0 -}}
+    {{- range $i, $e := $visible }}{{ if and $selected (eq $e.Permalink $selected.Permalink) }}{{ $selRank = (add $i 1) }}{{ end }}{{ end -}}
+    {{- /* mobile-only quick nav (desktop shows the stat readout + uses h / crumbs):
+           ← up a dir · ~ home · ? opens the menu. ← is omitted at the fs root. */ -}}
+    {{ if $upHref }}<a class="lf-updir" id="lf-updir" href="{{ $upHref }}" aria-label="up a directory"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></a>{{ end }}
+    <a class="lf-gohome" id="lf-gohome" href="{{ "/" | relURL }}" aria-label="home"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></a>
+    <span class="lf-status-left" id="lf-status">{{ if $dir.Params.denied }}<span class="lf-status-err">opening directory: open: chdir {{ $dir.Params.denied }}: permission denied</span>{{ else if $selName }}<span id="lf-stat-main">{{ $selStat }}</span><span id="lf-stat-time">{{ with $selTime }}  {{ . }}{{ end }}</span><span id="lf-stat-link">{{ with $selLink }} -&gt; {{ . }}{{ end }}</span>{{ end }}</span>
+    {{- /* mobile: tapping ? turns the bar into this menu; choosing closes it.
+           "find" turns the bar into a / prompt (see lf.js / lf.css). */ -}}
+    <div class="lf-statusmenu">
+      {{- /* three choices — find · sort · show. "sort"/"show" swap the row for a
+             sub-menu (data-view) right here in the bar; "‹" goes back. find opens
+             the / prompt. Selections stay open (only ✕ / tap-outside closes). */ -}}
+      <div class="lf-menu" data-view="top">
+        <span class="lf-menu-view" data-view="top">
+          <button class="lf-menu-item" type="button" data-act="find">find</button>
+          <button class="lf-menu-item" type="button" data-view="sort">sort</button>
+          <button class="lf-menu-item" type="button" data-view="show">show</button>
+        </span>
+        <span class="lf-menu-view" data-view="sort">
+          <button class="lf-menu-item lf-menu-back" type="button" data-view="top" aria-label="back">‹</button>
+          <button class="lf-menu-item" type="button" data-sort="natural">name</button>
+          <button class="lf-menu-item" type="button" data-sort="size">size</button>
+          <button class="lf-menu-item" type="button" data-sort="time">time</button>
+          <button class="lf-menu-item" type="button" data-sort="ext">ext</button>
+          <button class="lf-menu-item" type="button" data-act="reverse">asc</button>
+        </span>
+        <span class="lf-menu-view" data-view="show">
+          <button class="lf-menu-item lf-menu-back" type="button" data-view="top" aria-label="back">‹</button>
+          <button class="lf-menu-item" type="button" data-info="size">size</button>
+          <button class="lf-menu-item" type="button" data-info="time">time</button>
+          <button class="lf-menu-item" type="button" data-act="hidden">hidden</button>
+        </span>
+      </div>
+      <div class="lf-find"><span class="lf-find-prompt">/</span><input class="lf-find-input" id="lf-find-input" type="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" aria-label="find"></div>
+    </div>
+    <span class="lf-status-right">
+      <span class="lf-search" id="lf-search" hidden><span class="lf-search-prompt">/</span><span class="lf-search-term" id="lf-search-term"></span><span class="lf-caret">&block;</span></span>
+      {{- /* mobile-only menu button: gear opens the in-bar menu, ✕ closes it.
+             (The desktop ? lives in the top-bar controls.) */ -}}
+      <span class="lf-help" id="lf-menu" aria-label="menu"><svg class="lf-help-tools" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg><span class="lf-help-x" aria-hidden="true">&#10005;</span></span>
+      <span class="lf-pos" id="lf-pos">{{ if $visible }}{{ $selRank }}/{{ len $visible }}{{ else }}0/0{{ end }}</span>
+    </span>
+  </footer>
+
+  {{- partial "helpsheet.html" . -}}
+</div>
