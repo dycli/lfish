@@ -1,4 +1,4 @@
-// The lfish Hugo theme — https://github.com/ylandir/lfish
-module github.com/ylandir/lfish
+// The lfish Hugo theme — https://github.com/cdland/lfish
+module github.com/cdland/lfish
 
 go 1.21

@@ -4,7 +4,7 @@
 <body class="lf-body">
   <div class="lf">
     <header class="lf-bar lf-topbar">
-      <a class="lf-prompt" href="{{ "/" | relURL }}" title="home">{{ site.Params.user | default "user" }}@{{ site.Params.host | default site.Title }}</a>
+      <a class="lf-prompt" href="{{ "/" | relURL }}" title="home"><span class="lf-uh">{{ site.Params.user | default "user" }}</span>@<span class="lf-uh">{{ site.Params.host | default site.Title }}</span></a>
     </header>
     <div class="lf-cols">
       <main class="lf-pane lf-current" style="flex:1">

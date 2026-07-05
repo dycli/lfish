@@ -128,14 +128,13 @@ html { -webkit-tap-highlight-color: transparent; }
 .lf-here { color: var(--fg) !important; }  /* current path segment: white */
 .lf-sep  { color: var(--gray); margin: 0 0.1ch; }
 
-/* mobile-only status-bar icons (← back, ⌂ home, gear menu); hidden on desktop —
+/* mobile-only status-bar menu trigger (the word "menu"); hidden on desktop —
    the desktop ? lives in the top-bar controls (.lf-help-top) instead */
-.lf-updir, .lf-gohome, .lf-help { display: none; align-items: center; color: var(--fg-dim); text-decoration: none; cursor: pointer; }
-.lf-updir svg, .lf-gohome svg, .lf-help-tools { width: 1.4em; height: 1.4em; display: block; }
-.lf-help-tools, .lf-help-x { display: none; }   /* gear shows on mobile, ✕ while the menu is open */
+.lf-help { display: none; align-items: center; color: var(--fg-dim); text-decoration: none; cursor: pointer; }
+.lf-help-word, .lf-help-x { display: none; }   /* "menu" shows on mobile, ✕ while the menu is open */
 .lf-help-top svg { width: 1.05em; height: 1.05em; }   /* solid ?-circle reads heavy, like the github mark — trim a touch */
 /* hover-capable devices only — otherwise a tap leaves the icon stuck cyan on touch */
-@media (hover: hover) { .lf-help:hover, .lf-updir:hover, .lf-gohome:hover { color: var(--accent); } }
+@media (hover: hover) { .lf-help:hover { color: var(--accent); } }
 .lf-search { color: var(--yellow); }
 .lf-search-prompt { font-weight: 700; }
 .lf-caret { animation: lf-blink 1s steps(1) infinite; }
@@ -587,22 +586,21 @@ html.js .lf:not(.lf-ready) .lf-cursor { background: transparent; color: inherit;
      corners (the .lf safe-area insets are 0 in portrait). */
   .lf-statusbar, .lf-nvstatus { min-height: 2.9em; padding: 0.25em 2ch; font-size: 1em; }
   /* Directory drops its stat readout — touch can't move the highlight the way
-     j/k does. In its place, three icon controls with generous tap areas (icons
-     stay 1.4em): ← back (left), ⌂ home (centre), gear menu (right). */
+     j/k does. In its place the bar holds one text control with a generous tap
+     area: "menu" (right), which opens the in-bar find/sort/show menu. */
   #lf-status { display: none; }
   .lf-status-right { margin-left: auto; align-self: stretch; }
-  .lf-statusbar { position: relative; }                 /* anchor for the centred home icon */
-  /* each control fills the bar height + side padding → roomy tap targets */
-  .lf-updir, .lf-help { display: inline-flex; align-self: stretch; align-items: center; justify-content: center; padding: 0 0.9em; }
-  .lf-gohome { display: inline-flex; align-items: center; justify-content: center; position: absolute; left: 50%; top: 0; bottom: 0; transform: translateX(-50%); padding: 0 0.9em; }
-  /* the status-bar menu button: gear icon; ✕ while the menu is open. The
-     top-bar ? is desktop-only (the gear menu replaces the cheatsheet here). */
+  /* the control fills the bar height + side padding → roomy tap target */
+  .lf-help { display: inline-flex; align-self: stretch; align-items: center; justify-content: center; padding: 0 0.9em; }
+  /* the status-bar menu button: the word "menu"; ✕ while the menu is open. The
+     top-bar ? is desktop-only (this menu replaces the cheatsheet here). */
   .lf-help-top { display: none; }
-  .lf-help-tools { display: block; }
-  .lf-menuopen .lf-help-tools { display: none; }
-  .lf-menuopen .lf-help-x { display: inline; font-size: 1.6em; line-height: 1; }
-  .lf-menuopen .lf-updir, .lf-menuopen .lf-gohome { display: none; }
+  .lf-help-word { display: inline; }
+  .lf-menuopen .lf-help-word { display: none; }
+  .lf-menuopen .lf-help-x { display: inline; font-size: 1.2em; line-height: 1; }
   .lf-topbar { padding: 0.55em 1ch; font-size: 1.05em; }
+  /* the prompt shrinks to a bare @ — user@host eats too much of the bar */
+  .lf-uh { display: none; }
 
   /* the photo album's tap-to-move chevrons (keyboardless mobile) */
   /* ^/v centered in the bar; ← sits to their left (absolute, out of the centring) */
@@ -619,12 +617,11 @@ html.js .lf:not(.lf-ready) .lf-cursor { background: transparent; color: inherit;
   .lf-path > .lf-crumb:last-child { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .lf-path-d { display: none; }   /* after .lf-path so it wins: hide miller's desktop path */
 
-  /* the stat readout is hidden above and the directory bar shows only the icon
-     controls (back / home / menu), so its n/n position goes too. */
+  /* the stat readout is hidden above, so its n/n position goes too. */
   #lf-pos { display: none; }
 
-  /* tap "?" → the status bar itself becomes a one-row menu of words; "find" →
-     a "/" prompt. #lf carries .lf-menuopen / .lf-finding. The menu scrolls
+  /* tap "menu" → the status bar itself becomes a one-row menu of words; "find"
+     → a "/" prompt. #lf carries .lf-menuopen / .lf-finding. The menu scrolls
      horizontally if the words don't all fit, keeping the bar one row tall. */
   .lf-menuopen .lf-status-left { display: none; }
   .lf-menuopen .lf-status-right > :not(.lf-help) { display: none; }

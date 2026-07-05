@@ -36,7 +36,7 @@
      data-prev="{{ $prev }}" data-next="{{ $next }}">
 
   <header class="lf-bar lf-topbar">
-    <a class="lf-prompt" href="{{ "/" | relURL }}" title="home">{{ $user }}@{{ $host }}</a><span class="lf-psep">:</span>
+    <a class="lf-prompt" href="{{ "/" | relURL }}" title="home"><span class="lf-uh">{{ $user }}</span>@<span class="lf-uh">{{ $host }}</span></a><span class="lf-psep">:</span>
     {{- /* a photo in the Unix tree shows its absolute path, like the manager */ -}}
     {{- $abs := $page.Params.unix -}}
     {{- $rootHref := "/" | relURL }}{{ if $abs }}{{ with site.GetPage (index (site.Params.lf | default dict) "root" | default "/fs") }}{{ $rootHref = .RelPermalink }}{{ end }}{{ end -}}
