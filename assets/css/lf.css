@@ -183,7 +183,7 @@ html { -webkit-tap-highlight-color: transparent; }
 .lf-reader-body::-webkit-scrollbar { width: 0; height: 0; }
 .lf-parent  { flex: 2 1 0; }
 .lf-current { flex: 3 1 0; }
-.lf-preview { flex: 8 1 0; padding: 0.4em 0.8ch; }
+.lf-preview { flex: 5 1 0; padding: 0.4em 0.8ch; }
 
 /* ── entry lists ───────────────────────────────────────────────────────── */
 .lf-list { list-style: none; margin: 0; padding: 0.2em 0; }
