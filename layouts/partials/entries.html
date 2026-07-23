@@ -10,9 +10,19 @@
             3. dot files         (.plan)
             4. files             (about.md)
 
-  Within each group, entries keep their natural title order. We partition
-  explicitly rather than rely on .ByTitle, because Hugo's locale-aware
-  collation can ignore a leading "." and scatter the dotted entries.
+  Within each group, entries keep their natural title order — unless the
+  directory sets its own default in front matter, named after lf's options:
+
+    sortby: time     # name (default) | time — order within each group
+    reverse: true    # descending (a blog section wants time + reverse)
+
+  A visitor's explicit sort choice (menu / s-keys) still overrides this
+  everywhere for the session — lf.js only trusts the server order until the
+  user picks a sort (see data-sort-default in miller.html).
+
+  We partition explicitly rather than rely on .ByTitle, because Hugo's
+  locale-aware collation can ignore a leading "." and scatter the dotted
+  entries.
 
   Hidden pages (front matter `hidden: true`) ARE included — the templates
   render them with a .lf-hidden class so `zh` can toggle them, lf-style.
@@ -24,9 +34,17 @@
 {{- $dir := . -}}
 {{- $secs := where $dir.Sections "Params.nolist" "!=" true -}}
 {{- $pages := where $dir.RegularPages "Params.nolist" "!=" true -}}
+{{- if eq ($dir.Params.sortby | default "name") "time" -}}
+  {{- $secs = $secs.ByDate }}{{ $pages = $pages.ByDate -}}
+{{- else -}}
+  {{- $secs = $secs.ByTitle }}{{ $pages = $pages.ByTitle -}}
+{{- end -}}
+{{- if $dir.Params.reverse -}}
+  {{- $secs = $secs.Reverse }}{{ $pages = $pages.Reverse -}}
+{{- end -}}
 {{- $entries := slice -}}
-{{- range $secs.ByTitle -}}{{ if hasPrefix .Title "." }}{{ $entries = $entries | append . }}{{ end }}{{- end -}}
-{{- range $secs.ByTitle -}}{{ if not (hasPrefix .Title ".") }}{{ $entries = $entries | append . }}{{ end }}{{- end -}}
-{{- range $pages.ByTitle -}}{{ if hasPrefix .Title "." }}{{ $entries = $entries | append . }}{{ end }}{{- end -}}
-{{- range $pages.ByTitle -}}{{ if not (hasPrefix .Title ".") }}{{ $entries = $entries | append . }}{{ end }}{{- end -}}
+{{- range $secs -}}{{ if hasPrefix .Title "." }}{{ $entries = $entries | append . }}{{ end }}{{- end -}}
+{{- range $secs -}}{{ if not (hasPrefix .Title ".") }}{{ $entries = $entries | append . }}{{ end }}{{- end -}}
+{{- range $pages -}}{{ if hasPrefix .Title "." }}{{ $entries = $entries | append . }}{{ end }}{{- end -}}
+{{- range $pages -}}{{ if not (hasPrefix .Title ".") }}{{ $entries = $entries | append . }}{{ end }}{{- end -}}
 {{- return $entries -}}

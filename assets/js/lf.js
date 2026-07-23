@@ -570,8 +570,14 @@
   function toggleHidden() { applyHidden(!showHidden, true); }
 
   /* ── sort & info (lf's sortby / set info / reverse, persisted) ─────── */
-  var sortKey   = sget("lf:sort") || "natural";
-  var reverseOn = sget("lf:reverse") === "1";
+  // A directory can set its own default order in front matter (sortby/reverse,
+  // rendered server-side and mirrored in data-sort-default/-reverse-default).
+  // Until the user explicitly picks a sort, the server order is authoritative
+  // for every column — the defaults below only exist so the menu reads right.
+  var userSorted = sget("lf:sort") !== null || sget("lf:reverse") !== null;
+  var sortKey   = sget("lf:sort") || root.getAttribute("data-sort-default") || "natural";
+  var reverseOn = sget("lf:reverse") !== null ? sget("lf:reverse") === "1"
+                                              : root.getAttribute("data-reverse-default") === "1";
   var infoMode  = sget("lf:info"); if (infoMode === null) infoMode = "time";   // time (date) on by default
 
   function num(el, a) { return parseFloat(el.getAttribute(a)) || 0; }
@@ -625,8 +631,11 @@
     root.classList.remove("lf--info-size", "lf--info-time", "lf--info-both", "lf--info-none");
     root.classList.add(hasS && hasT ? "lf--info-both" : hasS ? "lf--info-size" : hasT ? "lf--info-time" : "lf--info-none");
   }
-  function setSort(key) { sortKey = key; sset("lf:sort", key); applySort(); sortColumns(); setCursor(cursor); updateWillSelect(); }
-  function toggleReverse() { reverseOn = !reverseOn; sset("lf:reverse", reverseOn ? "1" : "0"); applySort(); sortColumns(); setCursor(cursor); updateWillSelect(); }
+  // An explicit choice snapshots BOTH keys, so the session sort behaves the
+  // same in every directory afterwards regardless of per-dir defaults.
+  function sortChosen() { userSorted = true; sset("lf:sort", sortKey); sset("lf:reverse", reverseOn ? "1" : "0"); }
+  function setSort(key) { sortKey = key; sortChosen(); applySort(); sortColumns(); setCursor(cursor); updateWillSelect(); }
+  function toggleReverse() { reverseOn = !reverseOn; sortChosen(); applySort(); sortColumns(); setCursor(cursor); updateWillSelect(); }
   function setInfo(mode) { infoMode = mode; sset("lf:info", mode); applyInfoClass(); }
   function toggleMark() { if (entries[cursor]) entries[cursor].classList.toggle("lf-marked"); }
   function goHome() { window.location.href = "/"; }
@@ -746,9 +755,13 @@
   if (entryHidden(cursor) && !showHidden) applyHidden(true, true);
 
   // Apply the persisted sort + info mode (reorders the pane, keeps cursor).
+  // No explicit user sort → leave every column in its server order (each
+  // directory may carry its own front-matter default).
   applyInfoClass();
-  applySort();
-  sortColumns();   // parent pane + previews match the current pane's sort
+  if (userSorted) {
+    applySort();
+    sortColumns();   // parent pane + previews match the current pane's sort
+  }
   // Reflect the chosen selection (scroll it into view when we restored one).
   setCursor(cursor, { noScroll: !restored });
   // Underline each directory's preview at the entry you last left on.

@@ -71,10 +71,14 @@
   {{- if or $selected.Params.link $selected.Params.latest }}{{ $selLink = partialCached "linkhref.html" $selected $selected.RelPermalink }}{{ end -}}
 {{- end -}}
 
+{{- /* the directory's default sort (front matter sortby/reverse) — lf.js uses
+       it for the menu state, and only re-sorts once the user picks a sort */ -}}
 <div class="lf lf--info-time" id="lf"
      data-up="{{ $upHref }}"
      data-here="{{ $dir.RelPermalink }}"
-     data-selected="{{ $selIdx }}">
+     data-selected="{{ $selIdx }}"
+     data-sort-default="{{ if eq ($dir.Params.sortby | default "name") "time" }}time{{ else }}natural{{ end }}"
+     data-reverse-default="{{ if $dir.Params.reverse }}1{{ else }}0{{ end }}">
 
   {{- /* ── path / title bar ───────────────────────────────────────── */ -}}
   <header class="lf-bar lf-topbar">

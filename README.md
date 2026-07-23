@@ -98,6 +98,18 @@ first): dot-dirs, dirs, dot-files, files. Hugo ignores on-disk names starting
 with `.`, so to make a dot-folder name it `config/` on disk and set
 `title: ".config"`.
 
+A directory can set its own default order in its `_index.md`, using lf's
+option names — the classic case is a blog section that wants newest first:
+
+```yaml
+sortby:  time   # name (default) | time
+reverse: true   # descending
+```
+
+Other directories are unaffected. When a visitor picks a sort explicitly
+(menu or `s` keys) that choice applies everywhere for the session, riding
+over any per-directory defaults — exactly like lf's session-global `sortby`.
+
 ## Configuration
 
 ```toml
