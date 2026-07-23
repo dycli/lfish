@@ -591,8 +591,8 @@ html.js .lf:not(.lf-ready) .lf-cursor { background: transparent; color: inherit;
    so a half-screen desktop window stays desktop. Keep in sync with lf.js mqMobile. */
 @media (max-width: 600px) {
   .lf-preview { display: none; }
-  .lf-parent  { flex: 2 1 0; }   /* left thinner; its names may truncate */
-  .lf-current { flex: 5 1 0; }   /* right gets the room */
+  .lf-parent  { flex: 1 1 0; }   /* left thinner (⅓); its names may truncate */
+  .lf-current { flex: 2 1 0; }   /* right gets the room (⅔) */
 
   /* roomier for touch: scale the whole UI up. A bigger base font grows the text,
      and the em-based rows & bars grow with it, so everything stays proportional
