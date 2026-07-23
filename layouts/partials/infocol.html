@@ -1,13 +1,25 @@
 {{- /*
   infocol.html — the lf `info` column for an entry: a size span and a time
   span. Which show is controlled by a root class (lf--info-size / -time /
-  -both / -none), toggled by `zn/zs/zt/za`. The date uses the desktop
-  `Jan _2 2006` form ("Jun  1 2026") on every screen. Follows `link`.
+  -both / -none), toggled by `zn/zs/zt/za`. Follows `link`.
+
+  When the format ends in the year (" 2006"), the year gets its own span so
+  mobile can drop it (like ls -l on recent files) — width there is precious
+  and the listing order already carries recency.
 
   The long form's `_2` day padding is converted to a non-breaking space so the
   HTML minifier can't collapse it — that keeps single-digit days column-aligned.
 */ -}}
 {{- $e := . -}}
 {{- $d := partial "edate.html" $e -}}
-{{- $t := "" }}{{ if not $d.IsZero }}{{ $t = replace ($d.Format (site.Params.info_format | default "Jan _2 2006")) " " " " }}{{ end -}}
-<span class="lf-info"><span class="lf-isize">{{ partial "size.html" $e }}</span><span class="lf-itime">{{ $t }}</span></span>
+{{- $fmt := site.Params.info_format | default "Jan _2 2006" -}}
+{{- $t := "" }}{{ $y := "" -}}
+{{- if not $d.IsZero -}}
+  {{- if hasSuffix $fmt " 2006" -}}
+    {{- $t = replace ($d.Format (strings.TrimSuffix " 2006" $fmt)) " " " " -}}
+    {{- $y = replace ($d.Format " 2006") " " " " -}}
+  {{- else -}}
+    {{- $t = replace ($d.Format $fmt) " " " " -}}
+  {{- end -}}
+{{- end -}}
+<span class="lf-info"><span class="lf-isize">{{ partial "size.html" $e }}</span><span class="lf-itime">{{ $t }}{{ with $y }}<span class="lf-iyear">{{ . }}</span>{{ end }}</span></span>

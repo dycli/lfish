@@ -640,6 +640,7 @@ html.js .lf:not(.lf-ready) .lf-cursor { background: transparent; color: inherit;
   .lf-path-d { display: none; }   /* after .lf-path so it wins: hide miller's desktop path */
 
   .lf-hint { display: none; }   /* keyboard hint means nothing to touch */
+  .lf-iyear { display: none; }  /* "Jun 24", no year — width is precious */
 
   /* tap "menu" → the status bar itself becomes a one-row menu of words; "find"
      → a "/" prompt. #lf carries .lf-menuopen / .lf-finding. The menu scrolls
