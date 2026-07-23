@@ -2,12 +2,12 @@ name = "lfish"
 license = "MIT"
 licenselink = "LICENSE"
 description = "A Hugo theme that renders your site as the lf terminal file manager — three miller columns, live preview, and vi-style keybindings."
-homepage = "https://sux.is/"
-demosite = "https://sux.is/"
+homepage = "https://github.com/dycli/lfish"
+demosite = "https://dylanc.com/"
 tags = ["minimal", "terminal", "monospace", "dark", "file-manager", "lf", "keyboard"]
 features = ["miller-columns", "keyboard-navigation", "blog", "projects", "linktree", "responsive"]
 min_version = "0.146.0"
 
 [author]
-  name = "dylan"
-  homepage = "https://sux.is/"
+  name = "Dylan Cleary"
+  homepage = "https://dylanc.com/"

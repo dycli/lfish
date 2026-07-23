@@ -116,6 +116,9 @@ html { -webkit-tap-highlight-color: transparent; }
 .lf-status-left  { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
 .lf-status-right { flex: 0 0 auto; display: flex; align-items: center; gap: 2ch; }
 .lf-pos { color: var(--fg); }
+/* standing keybinding hint, right of centre in the status bar; desktop only —
+   mobile replaces it with the "menu" word (see the 600px block) */
+.lf-hint { color: var(--fg-dim); white-space: nowrap; }
 .lf-cmd { color: var(--yellow); }
 
 /* top bar: prompt, breadcrumb path, controls */
@@ -619,6 +622,7 @@ html.js .lf:not(.lf-ready) .lf-cursor { background: transparent; color: inherit;
 
   /* the stat readout is hidden above, so its n/n position goes too. */
   #lf-pos { display: none; }
+  .lf-hint { display: none; }   /* keyboard hint means nothing to touch */
 
   /* tap "menu" → the status bar itself becomes a one-row menu of words; "find"
      → a "/" prompt. #lf carries .lf-menuopen / .lf-finding. The menu scrolls

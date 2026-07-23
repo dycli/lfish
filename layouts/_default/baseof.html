@@ -4,7 +4,12 @@
   {{ partial "head.html" . }}
 </head>
 <body class="lf-body">
+  {{- /* email_off: tells Cloudflare's email obfuscation to leave the page
+         alone — it was rewriting user@host prompts and emails in content
+         to "[email protected]". */}}
+  {{ "<!--email_off-->" | safeHTML }}
   {{ block "main" . }}{{ partial "miller.html" . }}{{ end }}
+  {{ "<!--/email_off-->" | safeHTML }}
   {{- $js := resources.Get "js/lf.js" | resources.Minify | resources.Fingerprint -}}
   <script src="{{ $js.RelPermalink }}" integrity="{{ $js.Data.Integrity }}" defer></script>
 </body>
