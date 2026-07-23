@@ -179,6 +179,10 @@
     {{- $selRank := 0 -}}
     {{- range $i, $e := $visible }}{{ if and $selected (eq $e.Permalink $selected.Permalink) }}{{ $selRank = (add $i 1) }}{{ end }}{{ end -}}
     <span class="lf-status-left" id="lf-status">{{ if $dir.Params.denied }}<span class="lf-status-err">opening directory: open: chdir {{ $dir.Params.denied }}: permission denied</span>{{ else if $selName }}<span id="lf-stat-main">{{ $selStat }}</span><span id="lf-stat-time">{{ with $selTime }}  {{ . }}{{ end }}</span><span id="lf-stat-link">{{ with $selLink }} -&gt; {{ . }}{{ end }}</span>{{ end }}</span>
+    {{- /* mobile has no cursor, so the bar describes the DIRECTORY instead:
+           its stat left, item count right (see the 600px CSS block) */ -}}
+    {{- $dirStat := partialCached "stat-line.html" $dir $dir.RelPermalink -}}
+    <span class="lf-status-left lf-mdir">{{ index (split $dirStat "   ") 0 }}</span>
     {{- /* mobile: tapping "menu" turns the bar into this in-bar menu; "find"
            turns it into a / prompt (see lf.js / lf.css). Hidden on desktop. */ -}}
     <div class="lf-statusmenu">

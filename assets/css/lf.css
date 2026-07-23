@@ -115,6 +115,9 @@ html { -webkit-tap-highlight-color: transparent; }
    mtime day padding. It shrinks with an ellipsis so the position stays put. */
 .lf-status-left  { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
 .lf-status-right { flex: 0 0 auto; display: flex; align-items: center; gap: 2ch; }
+/* mobile-only directory status (the dir's own stat line) — swapped in for
+   the cursor readouts in the 600px block */
+.lf-mdir { display: none; }
 .lf-pos { color: var(--fg); }
 /* standing keybinding hint, right of centre in the status bar; desktop only —
    mobile replaces it with the "menu" word (see the 600px block) */
@@ -600,11 +603,16 @@ html.js .lf:not(.lf-ready) .lf-cursor { background: transparent; color: inherit;
      touch-sized height + a flat L/R buffer so edge text clears rounded screen
      corners (the .lf safe-area insets are 0 in portrait). */
   .lf-statusbar, .lf-nvstatus { min-height: 2.9em; padding: 0.25em 2ch; font-size: 1em; }
-  /* The status bar mirrors desktop: stat readout left, n/n right. The old
-     in-bar "menu" (find/sort/show) is retired on mobile — sorting and info
-     toggles were too clunky on touch, so mobile always shows the defaults.
-     (The menu machinery below is intentionally left in place, just
-     trigger-less, in case it comes back.) */
+  /* No cursor on touch, so the cursor readouts (entry stat, n/n) make no
+     sense — the bar shows just the directory's own stat line. No controls:
+     the old in-bar menu (find/sort/show) is retired — sorting was too
+     clunky on touch, so mobile always shows the defaults. (Menu machinery
+     below is left in place, trigger-less, in case it comes back.) */
+  #lf-status { display: none; }
+  .lf-statusbar--err #lf-status { display: inline; }   /* denied joke still lands */
+  .lf-statusbar--err .lf-mdir { display: none; }
+  .lf-mdir { display: inline; }
+  #lf-pos { display: none; }
   .lf-status-right { margin-left: auto; align-self: stretch; }
   /* the status-bar menu button: the word "menu"; ✕ while the menu is open. The
      top-bar ? is desktop-only (this menu replaces the cheatsheet here). */
