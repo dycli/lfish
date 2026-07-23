@@ -1,4 +1,4 @@
-baseURL = "https://example.org/"
+baseURL = "https://example.com/"
 title = "alice"
 theme = "lfish"
 
@@ -11,9 +11,9 @@ summaryLength = 40
 [params]
   # Shown in the prompt (user@host) and as the ls -l owner/group.
   user = "alice"
-  host = "example.org"
+  host = "example.com"
   # Top-bar icon links. Leave blank (or omit) to hide either.
-  email  = "alice@example.org"
+  email  = "alice@example.com"
   github = "https://github.com/alice"
   # Info-column date format (Go reference layout).
   info_format = "Jan _2 2006"

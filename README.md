@@ -4,6 +4,10 @@ Your website, rendered as the [lf](https://github.com/gokcehan/lf) terminal file
 manager. Three miller columns (parent · current · preview), a moving cursor,
 live previews, and vi-style keybindings — all over plain Hugo content.
 
+![lfish — parent, current and preview columns with a moving cursor](images/screenshot.png)
+
+Live demo: [dylanc.com](https://dylanc.com/)
+
 ```
 dylan@dylanc.com   dylan/posts/hello-world
  projects/    > hello-world        # hello, world
