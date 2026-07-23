@@ -98,12 +98,13 @@
       <a href="{{ cond $dabs $rootHref ("/" | relURL) }}" class="lf-crumb lf-d">{{ cond $dabs "/" "~" }}</a>{{- range $idx, $c := $dchain -}}{{ if or (gt $idx 0) (not $dabs) }}<span class="lf-sep">/</span>{{ end }}<a href="{{ $c.href }}" class="lf-crumb lf-d">{{ $c.title }}</a>{{- end -}}{{- if $selName -}}<span class="lf-sep">{{ $dentrySep }}</span><span class="lf-crumb lf-here" id="lf-cwd-entry">{{ $selName }}</span>{{- end -}}
     </span>
 
-    {{- /* mobile: current directory; last segment white; home shown absolute */ -}}
-    {{- $mabs := or (and $page.IsHome $fsHomePage) $page.Params.unix -}}
+    {{- /* mobile: current directory; last segment white. Mobile is rootfs-less:
+           home is a plain ~ (canonical) instead of the old absolute /home/dylan,
+           whose / and home crumbs were the only tap path up into the Unix
+           layer. Typed URLs still reach it — super easter egg. */ -}}
+    {{- $mabs := $page.Params.unix -}}
     {{- $mchain := slice -}}
-    {{- if and $page.IsHome $fsHomePage -}}
-      {{- $mchain = slice (dict "href" $fsHomePage.RelPermalink "title" "home") (dict "href" ("/" | relURL) "title" $user) -}}
-    {{- else if not $page.IsHome -}}
+    {{- if not $page.IsHome -}}
       {{- $mchain = partial "crumbs.html" (dict "dir" $dir "abs" $page.Params.unix) -}}
     {{- end -}}
     {{- $mlast := sub (len $mchain) 1 -}}

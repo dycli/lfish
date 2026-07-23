@@ -622,8 +622,6 @@ html.js .lf:not(.lf-ready) .lf-cursor { background: transparent; color: inherit;
   .lf-menuopen .lf-help-word { display: none; }
   .lf-menuopen .lf-help-x { display: inline; font-size: 1.2em; line-height: 1; }
   .lf-topbar { padding: 0.55em 1ch; font-size: 1.05em; }
-  /* the prompt shrinks to a bare @ — user@host eats too much of the bar */
-  .lf-uh { display: none; }
 
   /* the photo album's tap-to-move chevrons (keyboardless mobile) */
   /* ^/v centered in the bar; ← sits to their left (absolute, out of the centring) */
@@ -642,6 +640,9 @@ html.js .lf:not(.lf-ready) .lf-cursor { background: transparent; color: inherit;
 
   .lf-hint { display: none; }   /* keyboard hint means nothing to touch */
   .lf-iyear { display: none; }  /* "Jun 24", no year — width is precious */
+  /* rootfs-less mobile: the home breadcrumb is a plain ~ (no /home/dylan
+     links) — but the parent pane keeps its /home listing: the highlighted
+     "dylan" row is pure look, it only links back to ~ */
 
   /* tap "menu" → the status bar itself becomes a one-row menu of words; "find"
      → a "/" prompt. #lf carries .lf-menuopen / .lf-finding. The menu scrolls
