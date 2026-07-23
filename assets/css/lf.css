@@ -115,9 +115,9 @@ html { -webkit-tap-highlight-color: transparent; }
    mtime day padding. It shrinks with an ellipsis so the position stays put. */
 .lf-status-left  { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
 .lf-status-right { flex: 0 0 auto; display: flex; align-items: center; gap: 2ch; }
-/* mobile-only directory status (the dir's own stat line) — swapped in for
-   the cursor readouts in the 600px block */
-.lf-mdir { display: none; }
+/* mobile-only directory status (the dir's own stat line + its rank among
+   its siblings) — swapped in for the cursor readouts in the 600px block */
+.lf-mdir, .lf-mpos { display: none; }
 .lf-pos { color: var(--fg); }
 /* standing keybinding hint, right of centre in the status bar; desktop only —
    mobile replaces it with the "menu" word (see the 600px block) */
@@ -613,6 +613,7 @@ html.js .lf:not(.lf-ready) .lf-cursor { background: transparent; color: inherit;
   .lf-statusbar--err .lf-mdir { display: none; }
   .lf-mdir { display: inline; }
   #lf-pos { display: none; }
+  .lf-mpos { display: inline; color: var(--fg); }
   .lf-status-right { margin-left: auto; align-self: stretch; }
   /* the status-bar menu button: the word "menu"; ✕ while the menu is open. The
      top-bar ? is desktop-only (this menu replaces the cheatsheet here). */

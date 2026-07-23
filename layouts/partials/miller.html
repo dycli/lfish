@@ -220,6 +220,15 @@
       {{- /* desktop-only standing hint; mobile has the menu word instead */ -}}
       <span class="lf-hint"><kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd> / <kbd>&#8592;</kbd><kbd>&#8595;</kbd><kbd>&#8593;</kbd><kbd>&#8594;</kbd> to navigate</span>
       <span class="lf-pos" id="lf-pos">{{ if $visible }}{{ $selRank }}/{{ len $visible }}{{ else }}0/0{{ end }}</span>
+      {{- /* mobile n/n: the CURRENT DIR's rank among its parent's entries —
+             that's the highlight the parent column actually shows on touch */ -}}
+      {{- $prank := 0 }}{{ $pcount := 0 -}}
+      {{- with $parent -}}
+        {{- $pvisible := where (partialCached "entries.html" . .RelPermalink) "Params.hidden" "!=" true -}}
+        {{- $pcount = len $pvisible -}}
+        {{- range $i, $e := $pvisible }}{{ if eq (partialCached "linkhref.html" $e $e.RelPermalink) $dir.RelPermalink }}{{ $prank = add $i 1 }}{{ end }}{{ end -}}
+      {{- end -}}
+      {{- if gt $prank 0 }}<span class="lf-mpos">{{ $prank }}/{{ $pcount }}</span>{{ end }}
     </span>
   </footer>
 
