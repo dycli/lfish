@@ -640,6 +640,8 @@ html.js .lf:not(.lf-ready) .lf-cursor { background: transparent; color: inherit;
 
   .lf-hint { display: none; }   /* keyboard hint means nothing to touch */
   .lf-iyear { display: none; }  /* "Jun 24", no year — width is precious */
+  /* >1 dir deep: prompt condenses to a bare @ so the path gets the width */
+  .lf-deep .lf-uh { display: none; }
   /* rootfs-less mobile: the home breadcrumb is a plain ~ (no /home/dylan
      links) — but the parent pane keeps its /home listing: the highlighted
      "dylan" row is pure look, it only links back to ~ */

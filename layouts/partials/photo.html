@@ -31,7 +31,11 @@
 {{- $parts := slice (partial "name.html" $page) (partial "size.html" $page) -}}
 {{- with $img }}{{ $parts = $parts | append (printf "%d×%d" .Width .Height) }}{{ end -}}
 
-<div class="lf lf-reader lf-photo" id="lf" data-photopage="1"
+{{- /* mobile: more than one directory deep, the prompt condenses to a bare @
+       (see .lf-deep in the 600px CSS block) */ -}}
+{{- $mDeep := ge (len (partial "crumbs.html" (dict "dir" $page.Parent "abs" $page.Params.unix))) 2 -}}
+
+<div class="lf lf-reader lf-photo{{ if $mDeep }} lf-deep{{ end }}" id="lf" data-photopage="1"
      data-here="{{ $page.RelPermalink }}" data-up="{{ $page.Parent.RelPermalink }}"
      data-prev="{{ $prev }}" data-next="{{ $next }}">
 

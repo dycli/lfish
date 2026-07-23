@@ -62,6 +62,10 @@
 {{- $user := site.Params.user | default "user" -}}
 {{- $host := site.Params.host | default site.Title -}}
 
+{{- /* mobile: more than one directory deep, the prompt condenses to a bare @
+       (the path needs the width) — see .lf-deep in the 600px CSS block */ -}}
+{{- $mDeep := ge (len (partial "crumbs.html" (dict "dir" $dir "abs" $page.Params.unix))) 2 -}}
+
 {{- /* The selected entry's display info; JS updates these live as the cursor moves. */ -}}
 {{- $selName := "" }}{{ $selStat := "" }}{{ $selTime := "" }}{{ $selLink := "" -}}
 {{- if $selected -}}
@@ -73,7 +77,7 @@
 
 {{- /* the directory's default sort (front matter sortby/reverse) — lf.js uses
        it for the menu state, and only re-sorts once the user picks a sort */ -}}
-<div class="lf lf--info-time" id="lf"
+<div class="lf lf--info-time{{ if $mDeep }} lf-deep{{ end }}" id="lf"
      data-up="{{ $upHref }}"
      data-here="{{ $dir.RelPermalink }}"
      data-selected="{{ $selIdx }}"

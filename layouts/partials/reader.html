@@ -8,7 +8,10 @@
 {{- $page := . -}}
 {{- $user := site.Params.user | default "user" -}}
 {{- $host := site.Params.host | default site.Title -}}
-<div class="lf lf-reader" id="lf" data-reader="1" data-here="{{ $page.RelPermalink }}" data-up="{{ with $page.Parent }}{{ .RelPermalink }}{{ else }}{{ "/" | relURL }}{{ end }}">
+{{- /* mobile: more than one directory deep, the prompt condenses to a bare @
+       (see .lf-deep in the 600px CSS block) */ -}}
+{{- $mDeep := ge (len (partial "crumbs.html" (dict "dir" $page.Parent "abs" $page.Params.unix))) 2 -}}
+<div class="lf lf-reader{{ if $mDeep }} lf-deep{{ end }}" id="lf" data-reader="1" data-here="{{ $page.RelPermalink }}" data-up="{{ with $page.Parent }}{{ .RelPermalink }}{{ else }}{{ "/" | relURL }}{{ end }}">
 
   <header class="lf-bar lf-topbar">
     <a class="lf-prompt" href="{{ "/" | relURL }}" title="home"><span class="lf-uh">{{ $user }}</span>@<span class="lf-uh">{{ $host }}</span></a><span class="lf-psep">:</span>
