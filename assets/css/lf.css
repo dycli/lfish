@@ -119,6 +119,18 @@ html { -webkit-tap-highlight-color: transparent; }
 /* standing keybinding hint, right of centre in the status bar; desktop only —
    mobile replaces it with the "menu" word (see the 600px block) */
 .lf-hint { color: var(--fg-dim); white-space: nowrap; }
+/* tiny keycaps: thicker bottom border fakes the key's front face.
+   Fixed square boxes with the glyph centred — no glyph-width rectangles. */
+.lf-hint kbd {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.4em; height: 1.4em;
+  font: inherit; font-size: 0.85em;
+  margin: 0 0.12ch;
+  vertical-align: middle;
+  background: var(--bg1);
+  border: 1px solid var(--bg3); border-bottom-width: 2px;
+  border-radius: 3px;
+}
 .lf-cmd { color: var(--yellow); }
 
 /* top bar: prompt, breadcrumb path, controls */
